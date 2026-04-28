@@ -3,9 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ERP SaaS Pro</title>
+<title>ERP SaaS Dashboard</title>
 
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 body { background:#0b0f19; }
@@ -16,135 +17,222 @@ body { background:#0b0f19; }
 
 <div class="flex h-screen">
 
-  <!-- SIDEBAR -->
-  <aside class="w-64 bg-gray-900 p-4 hidden md:block">
-    <h1 class="text-xl font-bold mb-6 text-cyan-400">ERP Pro</h1>
+<!-- SIDEBAR -->
+<aside class="w-60 bg-gray-900 p-4 hidden md:block">
+  <h1 class="text-xl font-bold text-cyan-400 mb-6">ERP Pro</h1>
 
-    <nav class="space-y-2">
-      <button onclick="show('dashboard')" class="w-full text-left hover:bg-gray-800 p-2 rounded">Dashboard</button>
-      <button onclick="show('users')" class="w-full text-left hover:bg-gray-800 p-2 rounded">Users</button>
-      <button onclick="show('reports')" class="w-full text-left hover:bg-gray-800 p-2 rounded">Reports</button>
-      <button onclick="show('billing')" class="w-full text-left hover:bg-gray-800 p-2 rounded">Billing</button>
-    </nav>
-  </aside>
+  <nav class="space-y-2">
+    <button onclick="showPage('dashboard')" class="w-full text-left p-2 hover:bg-gray-800 rounded">Dashboard</button>
+    <button onclick="showPage('analytics')" class="w-full text-left p-2 hover:bg-gray-800 rounded">Analytics</button>
+    <button onclick="showPage('products')" class="w-full text-left p-2 hover:bg-gray-800 rounded">Products</button>
+    <button onclick="showPage('ledger')" class="w-full text-left p-2 hover:bg-gray-800 rounded">Ledger</button>
+  </nav>
+</aside>
 
-  <!-- MAIN -->
-  <div class="flex-1 flex flex-col">
+<!-- MAIN -->
+<div class="flex-1 flex flex-col">
 
-    <!-- TOPBAR -->
-    <header class="bg-gray-900 p-4 flex justify-between items-center">
-      <h2 class="text-lg font-semibold">Dashboard</h2>
-      <div class="text-sm">Admin</div>
-    </header>
+<header class="bg-gray-900 p-4 flex justify-between">
+  <div id="companyName">Company</div>
+  <button onclick="logout()">Logout</button>
+</header>
 
-    <!-- CONTENT -->
-    <main class="p-6 overflow-auto">
+<main class="p-6 overflow-auto">
 
-      <!-- DASHBOARD -->
-      <div id="dashboard" class="page">
+<!-- DASHBOARD -->
+<div id="dashboard" class="page">
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+<div class="grid md:grid-cols-3 gap-4 mb-6">
+  <div class="bg-gray-800 p-4 rounded">Revenue<br><span id="rev">₹0</span></div>
+  <div class="bg-gray-800 p-4 rounded">GST<br><span id="gst">₹0</span></div>
+  <div class="bg-gray-800 p-4 rounded">Invoices<br><span id="inv">0</span></div>
+</div>
 
-          <div class="bg-gray-800 p-4 rounded-xl">
-            <div class="text-gray-400">Revenue</div>
-            <div class="text-2xl font-bold text-cyan-400">₹1,25,000</div>
-          </div>
+<div class="grid md:grid-cols-2 gap-6">
+  <canvas id="revChart"></canvas>
+  <canvas id="gstChart"></canvas>
+</div>
 
-          <div class="bg-gray-800 p-4 rounded-xl">
-            <div class="text-gray-400">GST</div>
-            <div class="text-2xl font-bold text-green-400">₹18,000</div>
-          </div>
+</div>
 
-          <div class="bg-gray-800 p-4 rounded-xl">
-            <div class="text-gray-400">Users</div>
-            <div class="text-2xl font-bold text-yellow-400">32</div>
-          </div>
+<!-- ANALYTICS -->
+<div id="analytics" class="page hidden">
 
-        </div>
+<div class="grid md:grid-cols-4 gap-4 mb-6">
+  <div class="bg-gray-800 p-4 rounded">Profit<br><span id="profit"></span></div>
+  <div class="bg-gray-800 p-4 rounded">Expenses<br><span id="exp"></span></div>
+  <div class="bg-gray-800 p-4 rounded">Avg Invoice<br><span id="avg"></span></div>
+  <div class="bg-gray-800 p-4 rounded">GST<br><span id="gst2"></span></div>
+</div>
 
-        <div class="bg-gray-800 p-4 rounded-xl">
-          <h3 class="mb-4">Recent Activity</h3>
-          <p class="text-gray-400">No recent activity</p>
-        </div>
+<canvas id="analyticsChart"></canvas>
 
-      </div>
+</div>
 
-      <!-- USERS -->
-      <div id="users" class="page hidden">
+<!-- PRODUCTS -->
+<div id="products" class="page hidden">
+<h2 class="mb-4">Products</h2>
 
-        <h2 class="text-xl mb-4">Users</h2>
+<input id="pname" placeholder="Name" class="p-2 text-black">
+<input id="pprice" placeholder="Price" class="p-2 text-black">
+<button onclick="addProduct()">Add</button>
 
-        <div class="bg-gray-800 rounded-xl overflow-hidden">
+<table class="w-full mt-4">
+<tbody id="productTable"></tbody>
+</table>
+</div>
 
-          <table class="w-full text-left">
-            <thead class="bg-gray-700 text-sm">
-              <tr>
-                <th class="p-3">Name</th>
-                <th>Plan</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
+<!-- LEDGER -->
+<div id="ledger" class="page hidden">
+<h2>Ledger</h2>
+<div id="ledgerData"></div>
+</div>
 
-            <tbody id="userTable">
-            </tbody>
-
-          </table>
-
-        </div>
-
-      </div>
-
-      <!-- REPORTS -->
-      <div id="reports" class="page hidden">
-        <h2 class="text-xl mb-4">Reports</h2>
-
-        <div class="bg-gray-800 p-4 rounded-xl">
-          <button class="bg-cyan-500 px-4 py-2 rounded">Generate P&L</button>
-        </div>
-      </div>
-
-      <!-- BILLING -->
-      <div id="billing" class="page hidden">
-        <h2 class="text-xl mb-4">Billing</h2>
-
-        <div class="bg-gray-800 p-4 rounded-xl">
-          <p>Current Plan: Business</p>
-          <button class="mt-2 bg-green-500 px-4 py-2 rounded">Upgrade</button>
-        </div>
-      </div>
-
-    </main>
-  </div>
+</main>
+</div>
 </div>
 
 <script>
 
-// NAVIGATION
-function show(id){
-  document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
-  document.getElementById(id).classList.remove('hidden');
+// ================= CONFIG =================
+const API = "https://your-api.onrender.com";
+
+// ================= AUTH =================
+if(!localStorage.getItem("token")){
+  location.href="login.html";
 }
 
-// SAMPLE USERS
-let users = [
-  {name:"Ravi",plan:"Starter",status:"Active"},
-  {name:"Amit",plan:"Business",status:"Active"},
-  {name:"Neha",plan:"Free",status:"Blocked"}
-];
+function logout(){
+  localStorage.removeItem("token");
+  location.href="login.html";
+}
 
-function renderUsers(){
-  userTable.innerHTML = users.map(u=>`
-    <tr class="border-t border-gray-700">
-      <td class="p-3">${u.name}</td>
-      <td>${u.plan}</td>
-      <td>${u.status}</td>
-      <td><button class="text-cyan-400">Edit</button></td>
+// ================= API =================
+async function api(path, method="GET", body=null){
+  const res = await fetch(API + path,{
+    method,
+    headers:{
+      "Content-Type":"application/json",
+      "Authorization": localStorage.token
+    },
+    body: body ? JSON.stringify(body):null
+  });
+  return res.json();
+}
+
+// ================= NAV =================
+function showPage(id){
+  document.querySelectorAll(".page").forEach(p=>p.classList.add("hidden"));
+  document.getElementById(id).classList.remove("hidden");
+}
+
+// ================= COMPANY =================
+let currentCompany;
+
+async function loadCompany(){
+  const data = await api("/company");
+  currentCompany = data[0];
+  companyName.innerText = currentCompany.name;
+}
+
+// ================= DASHBOARD =================
+let revChart, gstChart;
+
+async function loadDashboard(){
+  const data = await api("/reports/summary");
+
+  rev.innerText="₹"+data.revenue;
+  gst.innerText="₹"+data.gst;
+  inv.innerText=data.invoices;
+
+  const labels=data.monthly.map(m=>m.month);
+
+  if(revChart) revChart.destroy();
+  if(gstChart) gstChart.destroy();
+
+  revChart=new Chart(revChartCanvas(),{
+    type:"line",
+    data:{labels,
+      datasets:[{label:"Revenue",data:data.monthly.map(m=>m.revenue)}]
+    }
+  });
+
+  gstChart=new Chart(gstChartCanvas(),{
+    type:"bar",
+    data:{labels,
+      datasets:[{label:"GST",data:data.monthly.map(m=>m.gst)}]
+    }
+  });
+}
+
+function revChartCanvas(){ return document.getElementById("revChart"); }
+function gstChartCanvas(){ return document.getElementById("gstChart"); }
+
+// ================= ANALYTICS =================
+let analyticsChart;
+
+async function loadAnalytics(){
+  const data = await api("/analytics/dashboard/"+currentCompany._id);
+
+  profit.innerText="₹"+data.profit;
+  exp.innerText="₹"+data.expenses;
+  avg.innerText="₹"+(data.avgInvoice||0);
+  gst2.innerText="₹"+data.gst;
+
+  if(analyticsChart) analyticsChart.destroy();
+
+  analyticsChart=new Chart(document.getElementById("analyticsChart"),{
+    type:"line",
+    data:{
+      labels:data.monthly.map(m=>m.month),
+      datasets:[
+        {label:"Revenue",data:data.monthly.map(m=>m.revenue)},
+        {label:"GST",data:data.monthly.map(m=>m.gst)}
+      ]
+    }
+  });
+}
+
+// ================= PRODUCTS =================
+async function loadProducts(){
+  const data = await api("/products/"+currentCompany._id);
+
+  productTable.innerHTML=data.map(p=>`
+    <tr>
+      <td>${p.name}</td>
+      <td>₹${p.price}</td>
     </tr>
   `).join('');
 }
 
-renderUsers();
+async function addProduct(){
+  await api("/products","POST",{
+    name:pname.value,
+    price:+pprice.value,
+    companyId:currentCompany._id
+  });
+  loadProducts();
+}
+
+// ================= LEDGER =================
+async function loadLedger(){
+  const data = await api("/voucher/"+currentCompany._id);
+
+  ledgerData.innerHTML=data.map(v=>`
+    <div>${v.type} - ${new Date(v.date).toLocaleDateString()}</div>
+  `).join('');
+}
+
+// ================= INIT =================
+async function init(){
+  await loadCompany();
+  await loadDashboard();
+  await loadAnalytics();
+  await loadProducts();
+  await loadLedger();
+}
+
+init();
 
 </script>
 
