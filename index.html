@@ -1,185 +1,152 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>ERP Pro Final</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ERP SaaS Pro</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+
 <style>
-body{font-family:Arial;background:#0b0f19;color:#fff;margin:0}
-.sidebar{width:200px;position:fixed;height:100%;background:#111;padding:10px}
-.main{margin-left:210px;padding:20px}
-button{padding:6px 10px;margin:5px}
-input,select{padding:6px;margin:5px}
-.card{background:#1a2235;padding:10px;margin:10px 0}
+body { background:#0b0f19; }
 </style>
 </head>
-<body>
 
-<!-- LOGIN -->
-<div id="auth">
-  <h2>Login</h2>
-  <input id="user" placeholder="User">
-  <input id="pass" type="password" placeholder="Pass">
-  <button onclick="login()">Login</button>
-</div>
+<body class="text-gray-200">
 
-<!-- SIDEBAR -->
-<div class="sidebar" id="sidebar" style="display:none">
-  <div onclick="page('dashboard')">Dashboard</div>
-  <div onclick="page('products')">Products</div>
-  <div onclick="page('sales')">Sales</div>
-  <div onclick="page('ledger')">Ledger</div>
-  <div onclick="page('reports')">Reports</div>
-  <div onclick="page('gst')">GST</div>
-</div>
+<div class="flex h-screen">
 
-<div class="main" id="app" style="display:none">
+  <!-- SIDEBAR -->
+  <aside class="w-64 bg-gray-900 p-4 hidden md:block">
+    <h1 class="text-xl font-bold mb-6 text-cyan-400">ERP Pro</h1>
 
-<!-- DASHBOARD -->
-<div id="dashboard" class="page">
-  <h2>Dashboard</h2>
-  Revenue: ₹<span id="rev">0</span>
-</div>
+    <nav class="space-y-2">
+      <button onclick="show('dashboard')" class="w-full text-left hover:bg-gray-800 p-2 rounded">Dashboard</button>
+      <button onclick="show('users')" class="w-full text-left hover:bg-gray-800 p-2 rounded">Users</button>
+      <button onclick="show('reports')" class="w-full text-left hover:bg-gray-800 p-2 rounded">Reports</button>
+      <button onclick="show('billing')" class="w-full text-left hover:bg-gray-800 p-2 rounded">Billing</button>
+    </nav>
+  </aside>
 
-<!-- PRODUCTS -->
-<div id="products" class="page" style="display:none">
-  <h2>Products</h2>
-  <input id="pname" placeholder="Name">
-  <input id="pprice" placeholder="Price">
-  <button onclick="addProduct()">Add</button>
-  <div id="plist"></div>
-</div>
+  <!-- MAIN -->
+  <div class="flex-1 flex flex-col">
 
-<!-- SALES -->
-<div id="sales" class="page" style="display:none">
-  <h2>Sales</h2>
-  <select id="sproduct"></select>
-  <input id="sqty" placeholder="Qty">
-  <button onclick="addSale()">Sell</button>
-  <div id="saleslist"></div>
-</div>
+    <!-- TOPBAR -->
+    <header class="bg-gray-900 p-4 flex justify-between items-center">
+      <h2 class="text-lg font-semibold">Dashboard</h2>
+      <div class="text-sm">Admin</div>
+    </header>
 
-<!-- LEDGER -->
-<div id="ledger" class="page" style="display:none">
-  <h2>Ledger</h2>
-  <div id="ledgerData"></div>
-</div>
+    <!-- CONTENT -->
+    <main class="p-6 overflow-auto">
 
-<!-- REPORTS -->
-<div id="reports" class="page" style="display:none">
-  <h2>Reports</h2>
-  <button onclick="showPL()">P&L</button>
-  <button onclick="showBS()">Balance Sheet</button>
-  <div id="report"></div>
-</div>
+      <!-- DASHBOARD -->
+      <div id="dashboard" class="page">
 
-<!-- GST -->
-<div id="gst" class="page" style="display:none">
-  <h2>GST</h2>
-  <button onclick="gstr1()">GSTR1</button>
-  <button onclick="gstr3b()">GSTR3B</button>
-  <pre id="gstout"></pre>
-</div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
 
+          <div class="bg-gray-800 p-4 rounded-xl">
+            <div class="text-gray-400">Revenue</div>
+            <div class="text-2xl font-bold text-cyan-400">₹1,25,000</div>
+          </div>
+
+          <div class="bg-gray-800 p-4 rounded-xl">
+            <div class="text-gray-400">GST</div>
+            <div class="text-2xl font-bold text-green-400">₹18,000</div>
+          </div>
+
+          <div class="bg-gray-800 p-4 rounded-xl">
+            <div class="text-gray-400">Users</div>
+            <div class="text-2xl font-bold text-yellow-400">32</div>
+          </div>
+
+        </div>
+
+        <div class="bg-gray-800 p-4 rounded-xl">
+          <h3 class="mb-4">Recent Activity</h3>
+          <p class="text-gray-400">No recent activity</p>
+        </div>
+
+      </div>
+
+      <!-- USERS -->
+      <div id="users" class="page hidden">
+
+        <h2 class="text-xl mb-4">Users</h2>
+
+        <div class="bg-gray-800 rounded-xl overflow-hidden">
+
+          <table class="w-full text-left">
+            <thead class="bg-gray-700 text-sm">
+              <tr>
+                <th class="p-3">Name</th>
+                <th>Plan</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+
+            <tbody id="userTable">
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </div>
+
+      <!-- REPORTS -->
+      <div id="reports" class="page hidden">
+        <h2 class="text-xl mb-4">Reports</h2>
+
+        <div class="bg-gray-800 p-4 rounded-xl">
+          <button class="bg-cyan-500 px-4 py-2 rounded">Generate P&L</button>
+        </div>
+      </div>
+
+      <!-- BILLING -->
+      <div id="billing" class="page hidden">
+        <h2 class="text-xl mb-4">Billing</h2>
+
+        <div class="bg-gray-800 p-4 rounded-xl">
+          <p>Current Plan: Business</p>
+          <button class="mt-2 bg-green-500 px-4 py-2 rounded">Upgrade</button>
+        </div>
+      </div>
+
+    </main>
+  </div>
 </div>
 
 <script>
 
-/* AUTH */
-function login(){
-  document.getElementById('auth').style.display='none';
-  document.getElementById('app').style.display='block';
-  document.getElementById('sidebar').style.display='block';
+// NAVIGATION
+function show(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
 }
 
-/* NAV */
-function page(p){
-  document.querySelectorAll('.page').forEach(x=>x.style.display='none');
-  document.getElementById(p).style.display='block';
+// SAMPLE USERS
+let users = [
+  {name:"Ravi",plan:"Starter",status:"Active"},
+  {name:"Amit",plan:"Business",status:"Active"},
+  {name:"Neha",plan:"Free",status:"Blocked"}
+];
+
+function renderUsers(){
+  userTable.innerHTML = users.map(u=>`
+    <tr class="border-t border-gray-700">
+      <td class="p-3">${u.name}</td>
+      <td>${u.plan}</td>
+      <td>${u.status}</td>
+      <td><button class="text-cyan-400">Edit</button></td>
+    </tr>
+  `).join('');
 }
 
-/* DATA */
-let products = JSON.parse(localStorage.products||"[]");
-let sales = JSON.parse(localStorage.sales||"[]");
-let ledger = [];
-
-/* PRODUCTS */
-function addProduct(){
-  let p={name:pname.value,price:+pprice.value,gst:18};
-  products.push(p);
-  localStorage.products=JSON.stringify(products);
-  renderProducts();
-}
-
-function renderProducts(){
-  plist.innerHTML=products.map(p=>p.name+" ₹"+p.price).join("<br>");
-  sproduct.innerHTML=products.map(p=>`<option>${p.name}</option>`);
-}
-renderProducts();
-
-/* SALES + ACCOUNTING */
-function addSale(){
-  let name=sproduct.value;
-  let qty=+sqty.value;
-  let p=products.find(x=>x.name==name);
-
-  let subtotal=p.price*qty;
-  let gst=subtotal*0.18;
-  let total=subtotal+gst;
-
-  sales.push({name,qty,subtotal,gst,total});
-  localStorage.sales=JSON.stringify(sales);
-
-  /* VOUCHER ENTRY */
-  ledger.push({debit:"Cash",credit:"Sales",amt:subtotal});
-  ledger.push({debit:"Cash",credit:"GST Output",amt:gst});
-
-  renderSales();
-  updateDashboard();
-}
-
-function renderSales(){
-  saleslist.innerHTML=sales.map(s=>s.name+" ₹"+s.total).join("<br>");
-}
-renderSales();
-
-/* DASHBOARD */
-function updateDashboard(){
-  let rev=sales.reduce((a,b)=>a+b.total,0);
-  document.getElementById('rev').innerText=rev;
-}
-updateDashboard();
-
-/* LEDGER */
-function showLedger(){
-  ledgerData.innerHTML=ledger.map(e=>
-    `${e.debit} → ${e.credit} ₹${e.amt}`
-  ).join("<br>");
-}
-document.getElementById('ledger').onclick=showLedger;
-
-/* REPORTS */
-function showPL(){
-  let income=sales.reduce((a,b)=>a+b.subtotal,0);
-  let gst=sales.reduce((a,b)=>a+b.gst,0);
-
-  report.innerHTML=`Income: ₹${income}<br>GST: ₹${gst}`;
-}
-
-function showBS(){
-  let cash=sales.reduce((a,b)=>a+b.total,0);
-  report.innerHTML=`Assets (Cash): ₹${cash}`;
-}
-
-/* GST */
-function gstr1(){
-  gstout.textContent=JSON.stringify(sales,null,2);
-}
-
-function gstr3b(){
-  let gst=sales.reduce((a,b)=>a+b.gst,0);
-  gstout.textContent="Total GST: "+gst;
-}
+renderUsers();
 
 </script>
+
 </body>
 </html>
