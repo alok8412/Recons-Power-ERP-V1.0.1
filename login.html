@@ -79,30 +79,18 @@ function toggleMode(){
 }
 
 // SUBMIT
-async function submitForm(){
+function submitForm(){
 
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
-  const errorBox = document.getElementById("error");
 
-  errorBox.classList.add("hidden");
-
-  try {
-
-    const url = isSignup ? "/auth/signup" : "/auth/login";
-
-    const res = await fetch(API + url,{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ email, password })
-    });
-
-    const data = await res.json();
-
-    if(!data.success){
-      throw new Error(data.message || "Login failed");
-    }
-
+  if(email && password){
+    localStorage.setItem("token","demo-token");
+    window.location.href="index.html";
+  } else {
+    alert("Enter details");
+  }
+}
     // SAVE TOKEN
     localStorage.setItem("token", data.token);
 
