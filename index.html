@@ -1,224 +1,185 @@
 <!DOCTYPE html>
-
 <html>
 <head>
 <meta charset="UTF-8">
-<title>ULTIMATE ERP</title>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
+<title>ERP Pro Final</title>
 <style>
-body{margin:0;font-family:Arial;background:#0b0f19;color:#fff}
-.sidebar{width:220px;height:100vh;background:#111827;position:fixed;padding:15px}
-.sidebar button{width:100%;margin:5px 0;padding:10px;background:#1f2937;color:#fff;border:none;border-radius:6px}
-.main{margin-left:240px;padding:20px}
-.card{background:#111827;padding:15px;margin-bottom:15px;border-radius:10px}
-input,select{padding:8px;margin:5px;border-radius:6px;border:none}
-button.action{background:#22d3ee;color:#000;padding:8px;border:none;border-radius:6px}
-.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+body{font-family:Arial;background:#0b0f19;color:#fff;margin:0}
+.sidebar{width:200px;position:fixed;height:100%;background:#111;padding:10px}
+.main{margin-left:210px;padding:20px}
+button{padding:6px 10px;margin:5px}
+input,select{padding:6px;margin:5px}
+.card{background:#1a2235;padding:10px;margin:10px 0}
 </style>
-
 </head>
-
 <body>
 
-<div class="sidebar">
-<h2>🚀 ERP</h2>
-<button onclick="show('dash')">Dashboard</button>
-<button onclick="show('prod')">Products</button>
-<button onclick="show('cust')">Customers</button>
-<button onclick="show('sale')">Sales</button>
-<hr>
-<button onclick="login()">Login</button>
-<button onclick="logout()">Logout</button>
-<button onclick="exportData()">Export</button>
-<input type="file" onchange="importData(event)">
+<!-- LOGIN -->
+<div id="auth">
+  <h2>Login</h2>
+  <input id="user" placeholder="User">
+  <input id="pass" type="password" placeholder="Pass">
+  <button onclick="login()">Login</button>
 </div>
 
-<div class="main">
-
-<div id="dash" class="page">
-<div class="grid">
-<div class="card">Revenue<br><b id="rev">₹0</b></div>
-<div class="card">Products<br><b id="pcount">0</b></div>
-<div class="card">Customers<br><b id="ccount">0</b></div>
-</div>
-</div>
-
-<div id="prod" class="page" style="display:none">
-<div class="card">
-<input id="pname" placeholder="Product">
-<input id="pprice" type="number" placeholder="Price">
-<input id="pqty" type="number" placeholder="Qty">
-<button class="action" onclick="addProduct()">Add</button>
-</div>
-<div class="card" id="plist"></div>
+<!-- SIDEBAR -->
+<div class="sidebar" id="sidebar" style="display:none">
+  <div onclick="page('dashboard')">Dashboard</div>
+  <div onclick="page('products')">Products</div>
+  <div onclick="page('sales')">Sales</div>
+  <div onclick="page('ledger')">Ledger</div>
+  <div onclick="page('reports')">Reports</div>
+  <div onclick="page('gst')">GST</div>
 </div>
 
-<div id="cust" class="page" style="display:none">
-<div class="card">
-<input id="cname" placeholder="Customer">
-<button class="action" onclick="addCustomer()">Add</button>
-</div>
-<div class="card" id="clist"></div>
+<div class="main" id="app" style="display:none">
+
+<!-- DASHBOARD -->
+<div id="dashboard" class="page">
+  <h2>Dashboard</h2>
+  Revenue: ₹<span id="rev">0</span>
 </div>
 
-<div id="sale" class="page" style="display:none">
-<div class="card">
-<select id="sprod"></select>
-<select id="scust"></select>
-<input id="sqty" type="number" placeholder="Qty">
-<button class="action" onclick="addCart()">Add</button>
+<!-- PRODUCTS -->
+<div id="products" class="page" style="display:none">
+  <h2>Products</h2>
+  <input id="pname" placeholder="Name">
+  <input id="pprice" placeholder="Price">
+  <button onclick="addProduct()">Add</button>
+  <div id="plist"></div>
 </div>
 
-<div class="card">
-<div id="cart"></div>
-<button class="action" onclick="invoice()">Generate Invoice PDF</button>
+<!-- SALES -->
+<div id="sales" class="page" style="display:none">
+  <h2>Sales</h2>
+  <select id="sproduct"></select>
+  <input id="sqty" placeholder="Qty">
+  <button onclick="addSale()">Sell</button>
+  <div id="saleslist"></div>
 </div>
 
-<div class="card" id="history"></div>
+<!-- LEDGER -->
+<div id="ledger" class="page" style="display:none">
+  <h2>Ledger</h2>
+  <div id="ledgerData"></div>
+</div>
+
+<!-- REPORTS -->
+<div id="reports" class="page" style="display:none">
+  <h2>Reports</h2>
+  <button onclick="showPL()">P&L</button>
+  <button onclick="showBS()">Balance Sheet</button>
+  <div id="report"></div>
+</div>
+
+<!-- GST -->
+<div id="gst" class="page" style="display:none">
+  <h2>GST</h2>
+  <button onclick="gstr1()">GSTR1</button>
+  <button onclick="gstr3b()">GSTR3B</button>
+  <pre id="gstout"></pre>
 </div>
 
 </div>
 
 <script>
 
-/* NAV */
-function show(id){
-  document.querySelectorAll('.page').forEach(p=>p.style.display='none');
-  document.getElementById(id).style.display='block';
+/* AUTH */
+function login(){
+  document.getElementById('auth').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('sidebar').style.display='block';
 }
 
-/* USER */
-let user=localStorage.getItem("u");
-function login(){let u=prompt("User");if(!u)return;user=u;localStorage.setItem("u",u);load();}
-function logout(){localStorage.clear();location.reload();}
-function key(k){return user+"_"+k}
+/* NAV */
+function page(p){
+  document.querySelectorAll('.page').forEach(x=>x.style.display='none');
+  document.getElementById(p).style.display='block';
+}
 
 /* DATA */
-let products=[],customers=[],sales=[],cart=[];
+let products = JSON.parse(localStorage.products||"[]");
+let sales = JSON.parse(localStorage.sales||"[]");
+let ledger = [];
 
-function save(){
-localStorage.setItem(key("p"),JSON.stringify(products));
-localStorage.setItem(key("c"),JSON.stringify(customers));
-localStorage.setItem(key("s"),JSON.stringify(sales));
-}
-
-function load(){
-if(!user)return alert("Login first");
-products=JSON.parse(localStorage.getItem(key("p"))||"[]");
-customers=JSON.parse(localStorage.getItem(key("c"))||"[]");
-sales=JSON.parse(localStorage.getItem(key("s"))||"[]");
-render();
-}
-
-/* PRODUCT */
+/* PRODUCTS */
 function addProduct(){
-let n=pname.value,pr=+pprice.value,q=+pqty.value;
-if(!n)return alert("Enter name");
-products.push({n,pr,q});
-save();render();
+  let p={name:pname.value,price:+pprice.value,gst:18};
+  products.push(p);
+  localStorage.products=JSON.stringify(products);
+  renderProducts();
 }
 
-/* CUSTOMER */
-function addCustomer(){
-let n=cname.value;
-if(!n)return alert("Enter name");
-customers.push({n,total:0});
-save();render();
+function renderProducts(){
+  plist.innerHTML=products.map(p=>p.name+" ₹"+p.price).join("<br>");
+  sproduct.innerHTML=products.map(p=>`<option>${p.name}</option>`);
+}
+renderProducts();
+
+/* SALES + ACCOUNTING */
+function addSale(){
+  let name=sproduct.value;
+  let qty=+sqty.value;
+  let p=products.find(x=>x.name==name);
+
+  let subtotal=p.price*qty;
+  let gst=subtotal*0.18;
+  let total=subtotal+gst;
+
+  sales.push({name,qty,subtotal,gst,total});
+  localStorage.sales=JSON.stringify(sales);
+
+  /* VOUCHER ENTRY */
+  ledger.push({debit:"Cash",credit:"Sales",amt:subtotal});
+  ledger.push({debit:"Cash",credit:"GST Output",amt:gst});
+
+  renderSales();
+  updateDashboard();
 }
 
-/* CART */
-function addCart(){
-let name=sprod.value,qty=+sqty.value;
-let p=products.find(x=>x.n==name);
-if(!p||p.q<qty)return alert("Stock low");
-cart.push({name,qty,price:p.pr});
-render();
+function renderSales(){
+  saleslist.innerHTML=sales.map(s=>s.name+" ₹"+s.total).join("<br>");
+}
+renderSales();
+
+/* DASHBOARD */
+function updateDashboard(){
+  let rev=sales.reduce((a,b)=>a+b.total,0);
+  document.getElementById('rev').innerText=rev;
+}
+updateDashboard();
+
+/* LEDGER */
+function showLedger(){
+  ledgerData.innerHTML=ledger.map(e=>
+    `${e.debit} → ${e.credit} ₹${e.amt}`
+  ).join("<br>");
+}
+document.getElementById('ledger').onclick=showLedger;
+
+/* REPORTS */
+function showPL(){
+  let income=sales.reduce((a,b)=>a+b.subtotal,0);
+  let gst=sales.reduce((a,b)=>a+b.gst,0);
+
+  report.innerHTML=`Income: ₹${income}<br>GST: ₹${gst}`;
 }
 
-/* INVOICE + GST + PDF */
-function invoice(){
-if(!cart.length)return alert("Cart empty");
-
-const {jsPDF}=window.jspdf;
-const doc=new jsPDF();
-
-let y=20,subtotal=0;
-
-doc.text("TAX INVOICE",80,10);
-
-cart.forEach(i=>{
-let amt=i.qty*i.price;
-subtotal+=amt;
-doc.text(`${i.name} x${i.qty} ₹${amt}`,10,y);
-y+=8;
-
-let p=products.find(x=>x.n==i.name);
-p.q-=i.qty;
-});
-
-let cgst=subtotal*0.09,sgst=subtotal*0.09,total=subtotal+cgst+sgst;
-
-doc.text("Subtotal: "+subtotal,120,100);
-doc.text("CGST: "+cgst,120,110);
-doc.text("SGST: "+sgst,120,120);
-doc.text("Total: "+total,120,140);
-
-doc.save("invoice.pdf");
-
-sales.unshift({total,date:new Date().toLocaleDateString()});
-
-cart=[];
-save();
-render();
+function showBS(){
+  let cash=sales.reduce((a,b)=>a+b.total,0);
+  report.innerHTML=`Assets (Cash): ₹${cash}`;
 }
 
-/* EXPORT */
-function exportData(){
-const blob=new Blob([JSON.stringify({products,customers,sales})]);
-let a=document.createElement("a");
-a.href=URL.createObjectURL(blob);
-a.download="backup.json";
-a.click();
+/* GST */
+function gstr1(){
+  gstout.textContent=JSON.stringify(sales,null,2);
 }
 
-/* IMPORT */
-function importData(e){
-let r=new FileReader();
-r.onload=()=>{
-let d=JSON.parse(r.result);
-products=d.products||[];
-customers=d.customers||[];
-sales=d.sales||[];
-save();render();
-};
-r.readAsText(e.target.files[0]);
+function gstr3b(){
+  let gst=sales.reduce((a,b)=>a+b.gst,0);
+  gstout.textContent="Total GST: "+gst;
 }
-
-/* RENDER */
-function render(){
-
-plist.innerHTML=products.map(p=>`${p.n} ₹${p.pr} (${p.q})`).join("<br>");
-clist.innerHTML=customers.map(c=>`${c.n}`).join("<br>");
-
-sprod.innerHTML=products.map(p=>`<option>${p.n}</option>`);
-scust.innerHTML=customers.map(c=>`<option>${c.n}</option>`);
-
-cart.innerHTML=cart.map(i=>`${i.name} x${i.qty}`).join("<br>");
-history.innerHTML=sales.map(s=>`₹${s.total} ${s.date}`).join("<br>");
-
-let revenue=sales.reduce((a,b)=>a+b.total,0);
-rev.innerHTML="₹"+revenue;
-pcount.innerHTML=products.length;
-ccount.innerHTML=customers.length;
-}
-
-/* INIT */
-if(user)load();
-else alert("Login first");
 
 </script>
-
 </body>
 </html>
