@@ -182,6 +182,7 @@ tbody tr:last-child td { border-bottom: none; }
       <div class="nav-section">Main</div>
       <button class="nav-item active" onclick="show('dashboard')"><span class="icon">📊</span> Dashboard</button>
       <button class="nav-item" onclick="show('inventory')"><span class="icon">📦</span> Inventory</button>
+      <button class="nav-item" onclick="show('quotations')"><span class="icon">🧾</span> Quotations</button>
       <button class="nav-item" onclick="show('sales')"><span class="icon">🛒</span> Sales Invoices</button>
       <button class="nav-item" onclick="show('purchases')"><span class="icon">📥</span> Purchase Invoices</button>
       <div class="nav-section">People</div>
@@ -252,6 +253,39 @@ tbody tr:last-child td { border-bottom: none; }
           <div class="table-wrap">
             <table id="ptable">
               <thead><tr><th>Name</th><th>Category</th><th>Qty</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- SALES -->
+      <div id="quotations" class="section">
+        <div class="page-header"><h1>Quotations</h1><p>Create and track price quotes before they become sales orders</p></div>
+        <div class="card">
+          <div class="card-title">Create Quotation</div>
+          <div class="form-row">
+            <div class="form-group"><label>Customer</label><select id="qcustomer"><option value="">Walk-in Customer</option></select></div>
+            <div class="form-group"><label>Product</label><select id="qproduct" onchange="updateQuotePrice()"></select></div>
+            <div class="form-group" style="max-width:100px"><label>Quantity</label><input id="qqty" type="number" placeholder="1" min="1" oninput="updateQuotePrice()"></div>
+            <div class="form-group" style="max-width:150px"><label>Valid Until</label><input id="qValidTill" type="date"></div>
+            <div class="form-group" style="max-width:140px"><label>Est. Total (with GST)</label><input id="qTotal" readonly placeholder="₹0.00" style="color:var(--accent)"></div>
+            <button class="btn btn-accent" style="margin-top:16px" onclick="makeQuotation()">🧾 Create Quotation</button>
+          </div>
+          <p style="font-size:12px;color:var(--muted);margin-top:10px">Quotations don't affect stock. Convert an accepted quotation to a Sales Invoice from the table below.</p>
+        </div>
+        <div class="card">
+          <div class="card-title">Quotations</div>
+          <div class="search-bar">
+            <input id="quoteSearch" placeholder="🔍 Search quotations..." oninput="filterTable('qtable','quoteSearch')">
+            <select id="quoteStatusFilter" style="max-width:130px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px" onchange="filterByStatus('qtable','quoteStatusFilter')">
+              <option value="">All Status</option><option value="Draft">Draft</option><option value="Sent">Sent</option><option value="Accepted">Accepted</option><option value="Rejected">Rejected</option><option value="Expired">Expired</option>
+            </select>
+            <button class="btn btn-outline btn-sm" onclick="exportTableCSV('qtable','quotations.csv')">⬇ CSV</button>
+          </div>
+          <div class="table-wrap">
+            <table id="qtable">
+              <thead><tr><th>Quote #</th><th>Product</th><th>Customer</th><th>Qty</th><th>Grand Total</th><th>Status</th><th>Valid Till</th><th>Date</th><th>Actions</th></tr></thead>
               <tbody></tbody>
             </table>
           </div>
@@ -667,6 +701,27 @@ tbody tr:last-child td { border-bottom: none; }
   </div>
 </div>
 
+<!-- EDIT QUOTATION MODAL -->
+<div class="modal-bg" id="editQuotationModal">
+  <div class="modal">
+    <h3>✏️ Edit Quotation</h3>
+    <input type="hidden" id="eqIndex">
+    <div class="form-row" style="flex-direction:column;align-items:stretch;gap:14px">
+      <div class="form-group"><label>Product</label><input id="eqProduct" readonly style="opacity:0.7"></div>
+      <div class="form-group"><label>Customer</label><select id="eqCustomer"><option value="Walk-in">Walk-in Customer</option></select></div>
+      <div class="form-group"><label>Quantity</label><input id="eqQty" type="number" min="1"></div>
+      <div class="form-group"><label>Status</label>
+        <select id="eqStatus"><option>Draft</option><option>Sent</option><option>Accepted</option><option>Rejected</option><option>Expired</option></select></div>
+      <div class="form-group"><label>Valid Until</label><input id="eqValidTill" type="date"></div>
+      <p style="font-size:12px;color:var(--muted)">Changing quantity recalculates the estimated total. Quotations don't affect stock.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('editQuotationModal')">Cancel</button>
+      <button class="btn btn-accent" onclick="saveQuotationEdit()">💾 Save Changes</button>
+    </div>
+  </div>
+</div>
+
 <!-- EDIT PURCHASE MODAL -->
 <div class="modal-bg" id="editPurchaseModal">
   <div class="modal">
@@ -707,6 +762,25 @@ tbody tr:last-child td { border-bottom: none; }
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('editVendorModal')">Cancel</button>
       <button class="btn btn-accent" onclick="saveVendorEdit()">💾 Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT CUSTOMER MODAL -->
+<div class="modal-bg" id="editCustomerModal">
+  <div class="modal">
+    <h3>✏️ Edit Customer</h3>
+    <input type="hidden" id="ecIndex">
+    <div class="form-row" style="flex-direction:column;align-items:stretch;gap:14px">
+      <div class="form-group"><label>Full Name</label><input id="ecName"></div>
+      <div class="form-group"><label>Phone</label><input id="ecPhone" maxlength="10"></div>
+      <div class="form-group"><label>Email</label><input id="ecEmail" type="email"></div>
+      <div class="form-group"><label>Type</label>
+        <select id="ecType"><option>Regular</option><option>VIP</option><option>Wholesale</option></select></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('editCustomerModal')">Cancel</button>
+      <button class="btn btn-accent" onclick="saveCustomerEdit()">💾 Save Changes</button>
     </div>
   </div>
 </div>
@@ -790,6 +864,17 @@ function parsePurchases(raw) {
     status:   pu.status || 'Unpaid',
   }));
 }
+function parseQuotations(raw) {
+  return (raw || []).map(q => ({
+    ...q,
+    qty:      Number(q.qty)      || 0,
+    subtotal: Number(q.subtotal) || 0,
+    gst:      Number(q.gst)      || 0,
+    grand:    Number(q.grand)    || 0,
+    status:   q.status || 'Draft',
+    quoteNo:  q.quoteNo || null,
+  }));
+}
 // FIX: sanitize expenses on load — strip any ₹/currency symbols, force numeric amount
 function parseExpenses(raw) {
   return (raw || []).map(e => ({
@@ -798,7 +883,7 @@ function parseExpenses(raw) {
   }));
 }
 
-let companyProfile, products, customers, vendors, sales, purchases, expenses, invoiceCounters;
+let companyProfile, products, customers, vendors, sales, purchases, expenses, quotations, invoiceCounters;
 let importPreviews = {};
 let importHistory  = [];
 
@@ -810,19 +895,32 @@ function loadCompanyData() {
   sales           = parseSales(JSON.parse(localStorage.getItem(ck("erp_sales"))));
   purchases       = parsePurchases(JSON.parse(localStorage.getItem(ck("erp_purchases"))));
   expenses        = parseExpenses(JSON.parse(localStorage.getItem(ck("erp_expenses"))));
-  invoiceCounters = JSON.parse(localStorage.getItem(ck("erp_inv_counters"))) || { sale:0, purchase:0 };
+  quotations      = parseQuotations(JSON.parse(localStorage.getItem(ck("erp_quotations"))));
+  invoiceCounters = JSON.parse(localStorage.getItem(ck("erp_inv_counters"))) || { sale:0, purchase:0, quote:0 };
+  if (invoiceCounters.quote === undefined) invoiceCounters.quote = 0;
   importPreviews  = {};
   importHistory   = [];
 }
 loadCompanyData();
 
 function nextInvoiceNo(type) {
-  const key = type === 'sale' ? 'sale' : 'purchase';
+  const key = type === 'sale' ? 'sale' : type === 'quote' ? 'quote' : 'purchase';
   invoiceCounters[key] = (invoiceCounters[key]||0) + 1;
   localStorage.setItem(ck("erp_inv_counters"), JSON.stringify(invoiceCounters));
-  const prefix = type === 'sale' ? 'SAL' : 'PUR';
+  const prefix = type === 'sale' ? 'SAL' : type === 'quote' ? 'QUO' : 'PUR';
   const yr = new Date().getFullYear();
   return `${prefix}-${yr}-${String(invoiceCounters[key]).padStart(4,'0')}`;
+}
+
+function quoteStatusBadge(status) {
+  const map = {
+    Draft:    'badge-blue',
+    Sent:     'badge-yellow',
+    Accepted: 'badge-green',
+    Rejected: 'badge-red',
+    Expired:  'badge-purple',
+  };
+  return `<span class="badge ${map[status]||'badge-blue'}">${esc(status||'Draft')}</span>`;
 }
 
 function statusBadge(status) {
@@ -921,6 +1019,7 @@ function login() {
   // FIX: repair any corrupted numeric fields in already-loaded arrays
   expenses  = expenses.map(e => ({ ...e, amount: Number(String(e.amount||0).replace(/[^\d.]/g,'')) || 0 }));
   sales     = sales.map(s => ({ ...s, grand: Number(s.grand)||0, subtotal: Number(s.subtotal)||0, gst: Number(s.gst)||0, status: s.status||'Paid' }));
+  quotations = quotations.map(q => ({ ...q, grand: Number(q.grand)||0, subtotal: Number(q.subtotal)||0, gst: Number(q.gst)||0, qty: Number(q.qty)||0, status: q.status||'Draft' }));
   purchases = purchases.map(pu => ({ ...pu, grand: Number(pu.grand)||0, subtotal: Number(pu.subtotal)||0, gst: Number(pu.gst)||0, rate: Number(pu.rate)||0, status: pu.status||'Unpaid' }));
   products  = products.map(p => ({ ...p, qty: Number(p.qty)||0, price: Number(p.price)||0 }));
   loadAll();
@@ -967,6 +1066,7 @@ function save() {
   localStorage.setItem(ck("erp_sales"),     JSON.stringify(sales));
   localStorage.setItem(ck("erp_purchases"), JSON.stringify(purchases));
   localStorage.setItem(ck("erp_expenses"),  JSON.stringify(expenses));
+  localStorage.setItem(ck("erp_quotations"),JSON.stringify(quotations));
   localStorage.setItem("erp_users",         JSON.stringify(users));
   loadAll();
 }
@@ -1167,6 +1267,8 @@ function loadProducts() {
   if (!products.length) {
     tb.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="e-icon">📦</div><p>No products yet</p></div></td></tr>`;
     document.getElementById('sproduct').innerHTML = '<option>No products</option>';
+    const qp = document.getElementById('qproduct');
+    if (qp) qp.innerHTML = '<option>No products</option>';
     return;
   }
   tb.innerHTML = products.map((p,i) => {
@@ -1192,6 +1294,10 @@ function loadProducts() {
   document.getElementById('sproduct').innerHTML = products
     .map(p => `<option value="${esc(p.name)}">${esc(p.name)} (Stock: ${p.qty})</option>`)
     .join('');
+  const qp = document.getElementById('qproduct');
+  if (qp) qp.innerHTML = products
+    .map(p => `<option value="${esc(p.name)}">${esc(p.name)} (₹${p.price.toLocaleString('en-IN')})</option>`)
+    .join('');
 }
 
 // ===== CUSTOMERS =====
@@ -1215,6 +1321,36 @@ function delCustomer(i) {
   showToast('🗑️ Customer deleted', 'error');
 }
 
+function editCustomer(i) {
+  const c = customers[i];
+  if (!c) return;
+  document.getElementById('ecIndex').value = i;
+  document.getElementById('ecName').value  = c.name;
+  document.getElementById('ecPhone').value = c.phone || '';
+  document.getElementById('ecEmail').value = c.email || '';
+  document.getElementById('ecType').value  = c.type || 'Regular';
+  document.getElementById('editCustomerModal').classList.add('open');
+}
+
+function saveCustomerEdit() {
+  const i     = Number(document.getElementById('ecIndex').value);
+  const name  = document.getElementById('ecName').value.trim();
+  const phone = document.getElementById('ecPhone').value.trim();
+  const email = document.getElementById('ecEmail').value.trim();
+  const type  = document.getElementById('ecType').value;
+  if (!validateRequired([[name,'Name']])) return;
+  if (phone && !/^\d{10}$/.test(phone)) { showToast('⚠️ Phone must be 10 digits', 'error'); return; }
+  const oldName = customers[i].name;
+  customers[i] = { ...customers[i], name, phone, email, type };
+  // FIX: keep sales/quotation/order records referencing this customer by name in sync
+  if (oldName !== name) {
+    if (typeof sales !== 'undefined') sales.forEach(s => { if (s.customer === oldName) s.customer = name; });
+  }
+  closeModal('editCustomerModal');
+  save();
+  showToast('✅ Customer updated!');
+}
+
 function loadCustomers() {
   const tb = document.querySelector('#ctable tbody');
   const sel = document.getElementById('scustomer');
@@ -1231,10 +1367,16 @@ function loadCustomers() {
       <td>${esc(c.email||'—')}</td>
       <td><span class="badge ${typeBadge}">${esc(c.type)}</span></td>
       <td>${c.joined}</td>
-      <td><button class="btn btn-danger btn-sm" onclick="delCustomer(${i})">Delete</button></td>
+      <td><div class="action-cell">
+        <button class="btn btn-warn btn-sm" onclick="editCustomer(${i})">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="delCustomer(${i})">Delete</button>
+      </div></td>
     </tr>`;
   }).join('');
   sel.innerHTML = '<option value="">Walk-in Customer</option>' +
+    customers.map(c => `<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
+  const qsel = document.getElementById('qcustomer');
+  if (qsel) qsel.innerHTML = '<option value="">Walk-in Customer</option>' +
     customers.map(c => `<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
 }
 
@@ -1436,16 +1578,144 @@ function loadSales() {
   </tr>`).join('');
 }
 
+// ===== QUOTATIONS =====
+function updateQuotePrice() {
+  const name = document.getElementById('qproduct').value;
+  const qty  = Number(document.getElementById('qqty').value) || 0;
+  const p    = products.find(x => x.name === name);
+  if (!p || qty <= 0) { document.getElementById('qTotal').value = ''; return; }
+  const grand = qty * p.price * 1.18;
+  document.getElementById('qTotal').value = `₹${grand.toLocaleString('en-IN',{minimumFractionDigits:2})}`;
+}
+
+function makeQuotation() {
+  const name     = document.getElementById('qproduct').value;
+  const customer = document.getElementById('qcustomer').value;
+  const qty      = Number(document.getElementById('qqty').value);
+  const validTill= document.getElementById('qValidTill').value;
+  if (!name || name === 'No products') { showToast('⚠️ Select a product', 'error'); return; }
+  if (!qty || qty <= 0) { showToast('⚠️ Enter valid quantity', 'error'); return; }
+  const p = products.find(x => x.name === name);
+  if (!p) { showToast('⚠️ Product not found', 'error'); return; }
+  // Quotations are estimates only — they do NOT touch stock
+  const subtotal = qty * p.price;
+  const gst      = +(subtotal * 0.18).toFixed(2);
+  const grand    = +(subtotal + gst).toFixed(2);
+  const date     = new Date().toLocaleString();
+  const quoteNo  = nextInvoiceNo('quote');
+  const quote = { quoteNo, name, customer: customer||'Walk-in', qty, subtotal, gst, grand, status:'Draft', validTill, date };
+  quotations.push(quote);
+  document.getElementById('qqty').value = '';
+  document.getElementById('qTotal').value = '';
+  save();
+  showToast(`✅ Quotation ${quoteNo} created!`);
+  showInvoice(quote, 'quote');
+}
+
+function delQuotation(i) {
+  if (!confirm('Delete this quotation?')) return;
+  quotations.splice(i, 1);
+  save();
+  showToast('🗑️ Quotation deleted', 'error');
+}
+
+function editQuotation(i) {
+  const q = quotations[i];
+  if (!q) return;
+  document.getElementById('eqIndex').value = i;
+  document.getElementById('eqProduct').value = q.name;
+  document.getElementById('eqQty').value = q.qty;
+  document.getElementById('eqStatus').value = q.status || 'Draft';
+  document.getElementById('eqValidTill').value = q.validTill || '';
+  const sel = document.getElementById('eqCustomer');
+  sel.innerHTML = '<option value="Walk-in">Walk-in Customer</option>' +
+    customers.map(c => `<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
+  sel.value = q.customer && [...sel.options].some(o=>o.value===q.customer) ? q.customer : 'Walk-in';
+  document.getElementById('editQuotationModal').classList.add('open');
+}
+
+function saveQuotationEdit() {
+  const i        = Number(document.getElementById('eqIndex').value);
+  const newQty   = Number(document.getElementById('eqQty').value);
+  const customer = document.getElementById('eqCustomer').value;
+  const status   = document.getElementById('eqStatus').value || 'Draft';
+  const validTill= document.getElementById('eqValidTill').value;
+  if (!newQty || newQty <= 0) { showToast('⚠️ Enter valid quantity', 'error'); return; }
+
+  const q = quotations[i];
+  const p = products.find(x => x.name === q.name);
+  const price = p ? p.price : (q.subtotal / (q.qty || 1));
+  const subtotal = +(newQty * price).toFixed(2);
+  const gst      = +(subtotal * 0.18).toFixed(2);
+  const grand    = +(subtotal + gst).toFixed(2);
+
+  quotations[i] = { ...q, qty: newQty, customer: customer || 'Walk-in', status, validTill, subtotal, gst, grand };
+
+  closeModal('editQuotationModal');
+  save();
+  showToast('✅ Quotation updated!');
+}
+
+// FIX: convert an accepted quotation into a real sales invoice, deduct stock, and link the two records
+function convertQuoteToSale(i) {
+  const q = quotations[i];
+  if (!q) return;
+  if (q.convertedInvNo) { showToast(`⚠️ Already converted to ${q.convertedInvNo}`, 'error'); return; }
+  const p = products.find(x => x.name === q.name);
+  if (!p) { showToast('⚠️ Linked product no longer exists', 'error'); return; }
+  if (p.qty < q.qty) { showToast(`⚠️ Only ${p.qty} in stock!`, 'error'); return; }
+  if (!confirm(`Convert quotation ${q.quoteNo} into a Sales Invoice?`)) return;
+
+  p.qty -= q.qty;
+  const subtotal = q.qty * p.price;
+  const gst      = +(subtotal * 0.18).toFixed(2);
+  const grand    = +(subtotal + gst).toFixed(2);
+  const invNo    = nextInvoiceNo('sale');
+  const sale = { invNo, name: q.name, customer: q.customer||'Walk-in', qty: q.qty, subtotal, gst, grand, status:'Unpaid', date: new Date().toLocaleString() };
+  sales.push(sale);
+
+  quotations[i] = { ...q, status: 'Accepted', convertedInvNo: invNo };
+  save();
+  showToast(`✅ Converted to Sales Invoice ${invNo}!`);
+  showInvoice(sale, 'sale');
+}
+
+function loadQuotations() {
+  const tb = document.querySelector('#qtable tbody');
+  if (!quotations.length) {
+    tb.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="e-icon">🧾</div><p>No quotations yet</p></div></td></tr>`;
+    return;
+  }
+  const indexed = quotations.map((q,i) => ({ ...q, _idx: i }));
+  tb.innerHTML = [...indexed].reverse().map(q => `<tr>
+    <td><span class="badge badge-blue">${esc(q.quoteNo||'—')}</span></td>
+    <td><strong>${esc(q.name)}</strong></td>
+    <td>${esc(q.customer||'Walk-in')}</td>
+    <td>${q.qty}</td>
+    <td><strong>₹${(q.grand||0).toLocaleString('en-IN')}</strong></td>
+    <td>${quoteStatusBadge(q.status)}</td>
+    <td>${q.validTill||'—'}</td>
+    <td>${q.date}</td>
+    <td><div class="action-cell">
+      <button class="btn btn-outline btn-sm" onclick="showInvoice(quotations[${q._idx}],'quote')">View</button>
+      <button class="btn btn-warn btn-sm" onclick="editQuotation(${q._idx})">Edit</button>
+      ${q.convertedInvNo ? `<span class="badge badge-green" title="Converted">→ ${esc(q.convertedInvNo)}</span>` : `<button class="btn btn-success btn-sm" onclick="convertQuoteToSale(${q._idx})">Convert</button>`}
+      <button class="btn btn-danger btn-sm" onclick="delQuotation(${q._idx})">Delete</button>
+    </div></td>
+  </tr>`).join('');
+}
+
 // ===== INVOICE (shared by Sales & Purchase invoices) =====
 let currentInvoice = null;
 let currentInvoiceType = 'sale';
 
 function invoiceHTML(record, type) {
   const isSale    = type === 'sale';
-  const partyLbl  = isSale ? 'Bill To (Customer)' : 'Vendor (Bill From)';
-  const party     = isSale ? record.customer : record.vendor;
-  const itemName  = isSale ? record.name : record.item;
-  const rate      = isSale ? (record.subtotal/record.qty) : record.rate;
+  const isQuote   = type === 'quote';
+  const partyLbl  = isQuote ? 'Quotation For (Customer)' : isSale ? 'Bill To (Customer)' : 'Vendor (Bill From)';
+  const party     = isQuote ? record.customer : isSale ? record.customer : record.vendor;
+  const itemName  = isQuote ? record.name : isSale ? record.name : record.item;
+  const rate      = isQuote ? (record.subtotal/record.qty) : isSale ? (record.subtotal/record.qty) : record.rate;
   const cgst      = +(record.gst/2).toFixed(2);
   const sgst      = +(record.gst/2).toFixed(2);
   const c = companyProfile;
@@ -1461,8 +1731,8 @@ function invoiceHTML(record, type) {
         </div>
       </div>
       <div style="text-align:right">
-        <div style="font-size:18px;font-weight:700;color:#0f172a">TAX INVOICE</div>
-        <div style="font-size:11px;color:#64748b">(Under Section 31 Rule 46 of GST Act 2017)</div>
+        <div style="font-size:18px;font-weight:700;color:#0f172a">${isQuote ? 'QUOTATION' : 'TAX INVOICE'}</div>
+        <div style="font-size:11px;color:#64748b">${isQuote ? '(Estimate — Not a Tax Invoice)' : '(Under Section 31 Rule 46 of GST Act 2017)'}</div>
       </div>
     </div>
 
@@ -1480,10 +1750,12 @@ function invoiceHTML(record, type) {
         </td>
         <td style="width:45%;border:1px solid #cbd5e1;padding:10px;vertical-align:top">
           <table style="width:100%;font-size:12px;border-collapse:collapse">
-            <tr><td style="color:#64748b;padding:2px 0">Invoice No.</td><td style="text-align:right;font-weight:700">${esc(record.invNo||'—')}</td></tr>
+            <tr><td style="color:#64748b;padding:2px 0">${isQuote ? 'Quotation No.' : 'Invoice No.'}</td><td style="text-align:right;font-weight:700">${esc((isQuote ? record.quoteNo : record.invNo)||'—')}</td></tr>
             <tr><td style="color:#64748b;padding:2px 0">Date</td><td style="text-align:right">${record.date}</td></tr>
             <tr><td style="color:#64748b;padding:2px 0">Mode/Terms</td><td style="text-align:right">As Usual</td></tr>
-            <tr><td style="color:#64748b;padding:2px 0">Payment Status</td><td style="text-align:right;font-weight:700;color:${record.status==='Paid'?'#10b981':'#f43f5e'}">${esc(record.status||'—')}</td></tr>
+            ${isQuote
+              ? `<tr><td style="color:#64748b;padding:2px 0">Valid Until</td><td style="text-align:right;font-weight:700">${esc(record.validTill||'—')}</td></tr>`
+              : `<tr><td style="color:#64748b;padding:2px 0">Payment Status</td><td style="text-align:right;font-weight:700;color:${record.status==='Paid'?'#10b981':'#f43f5e'}">${esc(record.status||'—')}</td></tr>`}
           </table>
         </td>
       </tr>
@@ -1528,14 +1800,16 @@ function invoiceHTML(record, type) {
 
     <div style="display:flex;justify-content:space-between;align-items:flex-end;border-top:1px solid #cbd5e1;padding-top:16px">
       <div style="font-size:10px;color:#64748b;max-width:320px;line-height:1.6">
-        <strong>Declaration:</strong> This is a system-generated ${isSale?'sales':'purchase'} invoice and shows the actual value of the ${isSale?'goods/services sold':'goods/services purchased'}.
+        <strong>Declaration:</strong> ${isQuote
+          ? 'This is a system-generated quotation. Prices are indicative and subject to change; this document is not a demand for payment.'
+          : `This is a system-generated ${isSale?'sales':'purchase'} invoice and shows the actual value of the ${isSale?'goods/services sold':'goods/services purchased'}.`}
       </div>
       <div style="text-align:center;font-size:12px">
         <div style="margin-bottom:36px">for ${esc(c.name)}</div>
         <div style="border-top:1px solid #1e293b;padding-top:4px">Authorised Signatory</div>
       </div>
     </div>
-    <div style="text-align:center;font-size:10px;color:#94a3b8;margin-top:20px">This is a Computer Generated Invoice — RECONS ERP Pro</div>
+    <div style="text-align:center;font-size:10px;color:#94a3b8;margin-top:20px">This is a Computer Generated ${isQuote ? 'Quotation' : 'Invoice'} — RECONS ERP Pro</div>
   </div>`;
 }
 
@@ -1549,7 +1823,7 @@ function showInvoice(record, type='sale') {
 function printInvoiceModal() {
   if (!currentInvoice) return;
   const w = window.open('','_blank','width=850,height:1000');
-  w.document.write(`<html><head><title>Invoice ${esc(currentInvoice.invNo||'')}</title>
+  w.document.write(`<html><head><title>${currentInvoiceType==='quote'?'Quotation':'Invoice'} ${esc(currentInvoice.invNo||currentInvoice.quoteNo||'')}</title>
     <style>@media print{body{margin:0}} body{margin:0;background:#fff}</style></head>
     <body>${invoiceHTML(currentInvoice, currentInvoiceType)}
     <script>window.onload=()=>window.print();<\/script></body></html>`);
@@ -2250,6 +2524,7 @@ function loadAll() {
   loadProducts();
   loadCustomers();
   loadVendors();
+  loadQuotations();
   loadSales();
   loadPurchases();
   loadExpenses();
@@ -2266,6 +2541,8 @@ document.addEventListener('DOMContentLoaded', () => {
   if (ed) ed.value = new Date().toISOString().split('T')[0];
   const pd = document.getElementById('puDate');
   if (pd) pd.value = new Date().toISOString().split('T')[0];
+  const qv = document.getElementById('qValidTill');
+  if (qv) { const d = new Date(); d.setDate(d.getDate()+7); qv.value = d.toISOString().split('T')[0]; }
 });
 </script>
 </body>
