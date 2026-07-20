@@ -178,10 +178,11 @@ tbody tr:last-child td { border-bottom: none; }
       <div class="nav-section">Main</div>
       <button class="nav-item active" onclick="show('dashboard')"><span class="icon">📊</span> Dashboard</button>
       <button class="nav-item" onclick="show('inventory')"><span class="icon">📦</span> Inventory</button>
-      <button class="nav-item" onclick="show('sales')"><span class="icon">🛒</span> Sales</button>
-      <button class="nav-item" onclick="show('purchases')"><span class="icon">📥</span> Purchases</button>
+      <button class="nav-item" onclick="show('sales')"><span class="icon">🛒</span> Sales Invoices</button>
+      <button class="nav-item" onclick="show('purchases')"><span class="icon">📥</span> Purchase Invoices</button>
       <div class="nav-section">People</div>
       <button class="nav-item" onclick="show('customers')"><span class="icon">👥</span> Customers</button>
+      <button class="nav-item" onclick="show('vendors')"><span class="icon">🏭</span> Vendors</button>
       <button class="nav-item" onclick="show('users')"><span class="icon">🔐</span> Users</button>
       <div class="nav-section">Analytics</div>
       <button class="nav-item" onclick="show('reports')"><span class="icon">📈</span> Reports</button>
@@ -254,27 +255,32 @@ tbody tr:last-child td { border-bottom: none; }
 
       <!-- SALES -->
       <div id="sales" class="section">
-        <div class="page-header"><h1>Sales</h1><p>Create orders and view sales history</p></div>
+        <div class="page-header"><h1>Sales Invoices</h1><p>Create, track and manage customer sales invoices</p></div>
         <div class="card">
-          <div class="card-title">Create Sale</div>
+          <div class="card-title">Create Sales Invoice</div>
           <div class="form-row">
             <div class="form-group"><label>Customer</label><select id="scustomer"><option value="">Walk-in Customer</option></select></div>
             <div class="form-group"><label>Product</label><select id="sproduct" onchange="updateSalePrice()"></select></div>
             <div class="form-group" style="max-width:100px"><label>Quantity</label><input id="sqty" type="number" placeholder="1" min="1" oninput="updateSalePrice()"></div>
+            <div class="form-group" style="max-width:130px"><label>Payment Status</label>
+              <select id="sStatus"><option value="Paid">Paid</option><option value="Unpaid">Unpaid</option></select></div>
             <div class="form-group" style="max-width:140px"><label>Est. Total (with GST)</label><input id="sTotal" readonly placeholder="₹0.00" style="color:var(--accent)"></div>
-            <button class="btn btn-success" style="margin-top:16px" onclick="makeSale()">🛒 Sell &amp; Invoice</button>
+            <button class="btn btn-success" style="margin-top:16px" onclick="makeSale()">🛒 Create Invoice</button>
           </div>
         </div>
         <div class="card">
-          <div class="card-title">Sales History</div>
+          <div class="card-title">Sales Invoices</div>
           <div class="search-bar">
-            <input id="salesSearch" placeholder="🔍 Search sales..." oninput="filterTable('stable','salesSearch')">
-            <button class="btn btn-outline btn-sm" onclick="exportTableCSV('stable','sales.csv')">⬇ CSV</button>
+            <input id="salesSearch" placeholder="🔍 Search invoices..." oninput="filterTable('stable','salesSearch')">
+            <select id="salesStatusFilter" style="max-width:130px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px" onchange="filterByStatus('stable','salesStatusFilter')">
+              <option value="">All Status</option><option value="Paid">Paid</option><option value="Unpaid">Unpaid</option>
+            </select>
+            <button class="btn btn-outline btn-sm" onclick="exportTableCSV('stable','sales_invoices.csv')">⬇ CSV</button>
             <button class="btn btn-outline btn-sm" onclick="exportSalesPDF()">⬇ PDF</button>
           </div>
           <div class="table-wrap">
             <table id="stable">
-              <thead><tr><th>Product</th><th>Customer</th><th>Qty</th><th>Subtotal</th><th>GST</th><th>Grand Total</th><th>Date</th><th>Actions</th></tr></thead>
+              <thead><tr><th>Invoice #</th><th>Product</th><th>Customer</th><th>Qty</th><th>Subtotal</th><th>GST</th><th>Grand Total</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
               <tbody></tbody>
             </table>
           </div>
@@ -283,21 +289,51 @@ tbody tr:last-child td { border-bottom: none; }
 
       <!-- PURCHASES -->
       <div id="purchases" class="section">
-        <div class="page-header"><h1>Purchases &amp; Expenses</h1><p>Track your business expenditures</p></div>
+        <div class="page-header"><h1>Purchase Invoices</h1><p>Record vendor purchases, restock inventory and manage bills</p></div>
         <div class="card">
-          <div class="card-title">Add Expense / Purchase</div>
+          <div class="card-title">Create Purchase Invoice</div>
           <div class="form-row">
-            <div class="form-group"><label>Description</label><input id="expDesc" placeholder="e.g. Office Supplies"></div>
-            <div class="form-group" style="max-width:140px"><label>Category</label>
-              <select id="expCat"><option>Inventory Purchase</option><option>Utilities</option><option>Salaries</option><option>Marketing</option><option>Rent</option><option>Other</option></select></div>
-            <div class="form-group" style="max-width:130px"><label>Amount (₹)</label><input id="expAmount" type="number" placeholder="0" min="0"></div>
-            <div class="form-group" style="max-width:150px"><label>Date</label><input id="expDate" type="date"></div>
-            <button class="btn btn-accent" style="margin-top:16px" onclick="addExpense()">+ Add</button>
+            <div class="form-group"><label>Vendor</label><select id="puVendor"><option value="">— Select Vendor —</option></select></div>
+            <div class="form-group"><label>Item / Product</label><input id="puItem" list="puItemList" placeholder="Type or pick existing product" oninput="updatePurchaseTotal()">
+              <datalist id="puItemList"></datalist></div>
+            <div class="form-group" style="max-width:100px"><label>Quantity</label><input id="puQty" type="number" placeholder="1" min="1" oninput="updatePurchaseTotal()"></div>
+            <div class="form-group" style="max-width:120px"><label>Rate (₹)</label><input id="puRate" type="number" placeholder="0" min="0" oninput="updatePurchaseTotal()"></div>
+            <div class="form-group" style="max-width:130px"><label>Payment Status</label>
+              <select id="puStatus"><option value="Unpaid">Unpaid</option><option value="Paid">Paid</option></select></div>
+            <div class="form-group" style="max-width:150px"><label>Date</label><input id="puDate" type="date"></div>
+            <div class="form-group" style="max-width:140px"><label>Est. Total (with GST)</label><input id="puTotal" readonly placeholder="₹0.00" style="color:var(--accent)"></div>
+            <button class="btn btn-accent" style="margin-top:16px" onclick="makePurchase()">📥 Create Invoice</button>
+          </div>
+          <p style="font-size:12px;color:var(--muted);margin-top:10px">If the item matches an existing product, stock quantity is increased automatically. New item names create a new product.</p>
+        </div>
+        <div class="card">
+          <div class="card-title">Purchase Invoices</div>
+          <div class="search-bar">
+            <input id="purchSearch" placeholder="🔍 Search invoices..." oninput="filterTable('putable','purchSearch')">
+            <select id="purchStatusFilter" style="max-width:130px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px" onchange="filterByStatus('putable','purchStatusFilter')">
+              <option value="">All Status</option><option value="Paid">Paid</option><option value="Unpaid">Unpaid</option>
+            </select>
+            <button class="btn btn-outline btn-sm" onclick="exportTableCSV('putable','purchase_invoices.csv')">⬇ CSV</button>
+          </div>
+          <div class="table-wrap">
+            <table id="putable">
+              <thead><tr><th>Invoice #</th><th>Vendor</th><th>Item</th><th>Qty</th><th>Rate</th><th>Subtotal</th><th>GST</th><th>Grand Total</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+              <tbody></tbody>
+            </table>
           </div>
         </div>
         <div class="card">
-          <div class="card-title">Expense Log</div>
-          <div class="search-bar">
+          <div class="card-title">Other Business Expenses</div>
+          <p style="font-size:12px;color:var(--muted);margin:-6px 0 14px">Non-inventory costs like rent, salaries, utilities and marketing.</p>
+          <div class="form-row">
+            <div class="form-group"><label>Description</label><input id="expDesc" placeholder="e.g. Office Supplies"></div>
+            <div class="form-group" style="max-width:140px"><label>Category</label>
+              <select id="expCat"><option>Utilities</option><option>Salaries</option><option>Marketing</option><option>Rent</option><option>Other</option></select></div>
+            <div class="form-group" style="max-width:130px"><label>Amount (₹)</label><input id="expAmount" type="number" placeholder="0" min="0"></div>
+            <div class="form-group" style="max-width:150px"><label>Date</label><input id="expDate" type="date"></div>
+            <button class="btn btn-outline" style="margin-top:16px" onclick="addExpense()">+ Add</button>
+          </div>
+          <div class="search-bar" style="margin-top:16px">
             <input id="expSearch" placeholder="🔍 Search expenses..." oninput="filterTable('exptable','expSearch')">
             <button class="btn btn-outline btn-sm" onclick="exportTableCSV('exptable','expenses.csv')">⬇ CSV</button>
           </div>
@@ -333,6 +369,35 @@ tbody tr:last-child td { border-bottom: none; }
           <div class="table-wrap">
             <table id="ctable">
               <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Type</th><th>Joined</th><th>Actions</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- VENDORS -->
+      <div id="vendors" class="section">
+        <div class="page-header"><h1>Vendors</h1><p>Manage your suppliers and vendors</p></div>
+        <div class="card">
+          <div class="card-title">Add Vendor</div>
+          <div class="form-row">
+            <div class="form-group"><label>Vendor / Company Name</label><input id="vname" placeholder="e.g. Sharma Traders"></div>
+            <div class="form-group"><label>Phone</label><input id="vphone" placeholder="e.g. 9876543210" maxlength="10"></div>
+            <div class="form-group"><label>Email</label><input id="vemail" type="email" placeholder="e.g. vendor@email.com"></div>
+            <div class="form-group" style="max-width:140px"><label>Category</label>
+              <select id="vcat"><option>Raw Materials</option><option>Finished Goods</option><option>Services</option><option>Other</option></select></div>
+            <button class="btn btn-accent" style="margin-top:16px" onclick="addVendor()">+ Add</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Vendor Directory</div>
+          <div class="search-bar">
+            <input id="vendSearch" placeholder="🔍 Search vendors..." oninput="filterTable('vtable','vendSearch')">
+            <button class="btn btn-outline btn-sm" onclick="exportTableCSV('vtable','vendors.csv')">⬇ CSV</button>
+          </div>
+          <div class="table-wrap">
+            <table id="vtable">
+              <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Category</th><th>Added</th><th>Actions</th></tr></thead>
               <tbody></tbody>
             </table>
           </div>
@@ -397,6 +462,7 @@ tbody tr:last-child td { border-bottom: none; }
         <div style="margin-top:16px; display:flex; gap:10px">
           <button class="btn btn-outline" onclick="exportSalesPDF()">⬇ Export Sales PDF</button>
           <button class="btn btn-outline" onclick="exportTableCSV('stable','sales_report.csv')">⬇ Export Sales CSV</button>
+          <button class="btn btn-outline" onclick="exportTableCSV('putable','purchase_report.csv')">⬇ Purchases CSV</button>
           <button class="btn btn-outline" onclick="exportTableCSV('exptable','expense_report.csv')">⬇ Expense CSV</button>
         </div>
       </div>
@@ -532,12 +598,57 @@ tbody tr:last-child td { border-bottom: none; }
       <div class="form-group"><label>Product</label><input id="esProduct" readonly style="opacity:0.7"></div>
       <div class="form-group"><label>Customer</label><select id="esCustomer"><option value="Walk-in">Walk-in Customer</option></select></div>
       <div class="form-group"><label>Quantity</label><input id="esQty" type="number" min="1"></div>
+      <div class="form-group"><label>Payment Status</label><select id="esStatus"><option value="Paid">Paid</option><option value="Unpaid">Unpaid</option></select></div>
       <div class="form-group"><label>Date</label><input id="esDate" type="date"></div>
       <p style="font-size:12px;color:var(--muted)">Changing quantity will automatically adjust stock and recalculate GST &amp; totals.</p>
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('editSaleModal')">Cancel</button>
       <button class="btn btn-accent" onclick="saveSaleEdit()">💾 Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT PURCHASE MODAL -->
+<div class="modal-bg" id="editPurchaseModal">
+  <div class="modal">
+    <h3>✏️ Edit Purchase Invoice</h3>
+    <input type="hidden" id="epuIndex">
+    <div class="form-row" style="flex-direction:column;align-items:stretch;gap:14px">
+      <div class="form-group"><label>Vendor</label><select id="epuVendor"></select></div>
+      <div class="form-group"><label>Item</label><input id="epuItem" readonly style="opacity:0.7"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Quantity</label><input id="epuQty" type="number" min="1"></div>
+        <div class="form-group"><label>Rate (₹)</label><input id="epuRate" type="number" min="0"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Payment Status</label><select id="epuStatus"><option value="Unpaid">Unpaid</option><option value="Paid">Paid</option></select></div>
+        <div class="form-group"><label>Date</label><input id="epuDate" type="date"></div>
+      </div>
+      <p style="font-size:12px;color:var(--muted)">Changing quantity will adjust linked product stock and recalculate GST &amp; totals.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('editPurchaseModal')">Cancel</button>
+      <button class="btn btn-accent" onclick="savePurchaseEdit()">💾 Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT VENDOR MODAL -->
+<div class="modal-bg" id="editVendorModal">
+  <div class="modal">
+    <h3>✏️ Edit Vendor</h3>
+    <input type="hidden" id="evIndex">
+    <div class="form-row" style="flex-direction:column;align-items:stretch;gap:14px">
+      <div class="form-group"><label>Vendor / Company Name</label><input id="evName"></div>
+      <div class="form-group"><label>Phone</label><input id="evPhone" maxlength="10"></div>
+      <div class="form-group"><label>Email</label><input id="evEmail" type="email"></div>
+      <div class="form-group"><label>Category</label>
+        <select id="evCat"><option>Raw Materials</option><option>Finished Goods</option><option>Services</option><option>Other</option></select></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('editVendorModal')">Cancel</button>
+      <button class="btn btn-accent" onclick="saveVendorEdit()">💾 Save Changes</button>
     </div>
   </div>
 </div>
@@ -560,18 +671,46 @@ const DEFAULT_ADMIN = { username:"admin", password:"123", role:"admin", created:
 
 let products  = JSON.parse(localStorage.getItem("erp_products"))  || [];
 let customers = JSON.parse(localStorage.getItem("erp_customers")) || [];
+let vendors   = JSON.parse(localStorage.getItem("erp_vendors"))   || [];
 let sales     = (JSON.parse(localStorage.getItem("erp_sales")) || []).map(s => ({
   ...s,
   qty:      Number(s.qty)      || 0,
   subtotal: Number(s.subtotal) || 0,
   gst:      Number(s.gst)      || 0,
   grand:    Number(s.grand)    || 0,
+  status:   s.status || 'Paid',
+  invNo:    s.invNo  || null,
+}));
+let purchases = (JSON.parse(localStorage.getItem("erp_purchases")) || []).map(pu => ({
+  ...pu,
+  qty:      Number(pu.qty)      || 0,
+  rate:     Number(pu.rate)     || 0,
+  subtotal: Number(pu.subtotal) || 0,
+  gst:      Number(pu.gst)      || 0,
+  grand:    Number(pu.grand)    || 0,
+  status:   pu.status || 'Unpaid',
 }));
 // FIX: sanitize expenses on load — strip any ₹/currency symbols, force numeric amount
 let expenses  = (JSON.parse(localStorage.getItem("erp_expenses")) || []).map(e => ({
   ...e,
   amount: Number(String(e.amount).replace(/[^\d.]/g, '')) || 0,
 }));
+let invoiceCounters = JSON.parse(localStorage.getItem("erp_inv_counters")) || { sale:0, purchase:0 };
+
+function nextInvoiceNo(type) {
+  const key = type === 'sale' ? 'sale' : 'purchase';
+  invoiceCounters[key] = (invoiceCounters[key]||0) + 1;
+  localStorage.setItem("erp_inv_counters", JSON.stringify(invoiceCounters));
+  const prefix = type === 'sale' ? 'SAL' : 'PUR';
+  const yr = new Date().getFullYear();
+  return `${prefix}-${yr}-${String(invoiceCounters[key]).padStart(4,'0')}`;
+}
+
+function statusBadge(status) {
+  return status === 'Paid'
+    ? `<span class="badge badge-green">✓ Paid</span>`
+    : `<span class="badge badge-red">⏳ Unpaid</span>`;
+}
 
 let users = (function(){
   let stored = null;
@@ -624,17 +763,19 @@ function login() {
     document.getElementById('userMgmtContent').style.display = 'none';
   }
   document.getElementById('expDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('puDate').value = new Date().toISOString().split('T')[0];
   // FIX: repair any corrupted numeric fields in already-loaded arrays
-  expenses = expenses.map(e => ({ ...e, amount: Number(String(e.amount||0).replace(/[^\d.]/g,'')) || 0 }));
-  sales    = sales.map(s => ({ ...s, grand: Number(s.grand)||0, subtotal: Number(s.subtotal)||0, gst: Number(s.gst)||0 }));
-  products = products.map(p => ({ ...p, qty: Number(p.qty)||0, price: Number(p.price)||0 }));
+  expenses  = expenses.map(e => ({ ...e, amount: Number(String(e.amount||0).replace(/[^\d.]/g,'')) || 0 }));
+  sales     = sales.map(s => ({ ...s, grand: Number(s.grand)||0, subtotal: Number(s.subtotal)||0, gst: Number(s.gst)||0, status: s.status||'Paid' }));
+  purchases = purchases.map(pu => ({ ...pu, grand: Number(pu.grand)||0, subtotal: Number(pu.subtotal)||0, gst: Number(pu.gst)||0, rate: Number(pu.rate)||0, status: pu.status||'Unpaid' }));
+  products  = products.map(p => ({ ...p, qty: Number(p.qty)||0, price: Number(p.price)||0 }));
   loadAll();
   show('dashboard');
 }
 
 function resetAndLogin() {
   if (!confirm('⚠️ This will clear ALL app data and restore the default admin login (admin / 123).\n\nContinue?')) return;
-  ['erp_products','erp_customers','erp_sales','erp_expenses','erp_users'].forEach(k => localStorage.removeItem(k));
+  ['erp_products','erp_customers','erp_vendors','erp_sales','erp_purchases','erp_expenses','erp_users','erp_inv_counters'].forEach(k => localStorage.removeItem(k));
   location.reload();
 }
 
@@ -668,7 +809,9 @@ function switchTab(tabId, btn) {
 function save() {
   localStorage.setItem("erp_products",  JSON.stringify(products));
   localStorage.setItem("erp_customers", JSON.stringify(customers));
+  localStorage.setItem("erp_vendors",   JSON.stringify(vendors));
   localStorage.setItem("erp_sales",     JSON.stringify(sales));
+  localStorage.setItem("erp_purchases", JSON.stringify(purchases));
   localStorage.setItem("erp_expenses",  JSON.stringify(expenses));
   localStorage.setItem("erp_users",     JSON.stringify(users));
   loadAll();
@@ -848,6 +991,77 @@ function loadCustomers() {
     customers.map(c => `<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
 }
 
+// ===== VENDORS =====
+function addVendor() {
+  const name  = document.getElementById('vname').value.trim();
+  const phone = document.getElementById('vphone').value.trim();
+  const email = document.getElementById('vemail').value.trim();
+  const cat   = document.getElementById('vcat').value;
+  if (!validateRequired([[name,'Vendor Name']])) return;
+  if (phone && !/^\d{10}$/.test(phone)) { showToast('⚠️ Phone must be 10 digits', 'error'); return; }
+  if (vendors.find(v => v.name.toLowerCase() === name.toLowerCase())) { showToast('⚠️ Vendor already exists', 'error'); return; }
+  vendors.push({ name, phone, email, cat, added: new Date().toLocaleDateString() });
+  ['vname','vphone','vemail'].forEach(id => document.getElementById(id).value='');
+  save();
+  showToast(`✅ Vendor "${name}" added!`);
+}
+
+function delVendor(i) {
+  if (!confirm('Delete this vendor?')) return;
+  vendors.splice(i, 1);
+  save();
+  showToast('🗑️ Vendor deleted', 'error');
+}
+
+function editVendor(i) {
+  const v = vendors[i];
+  if (!v) return;
+  document.getElementById('evIndex').value = i;
+  document.getElementById('evName').value  = v.name;
+  document.getElementById('evPhone').value = v.phone || '';
+  document.getElementById('evEmail').value = v.email || '';
+  document.getElementById('evCat').value   = v.cat || 'Other';
+  document.getElementById('editVendorModal').classList.add('open');
+}
+
+function saveVendorEdit() {
+  const i     = Number(document.getElementById('evIndex').value);
+  const name  = document.getElementById('evName').value.trim();
+  const phone = document.getElementById('evPhone').value.trim();
+  const email = document.getElementById('evEmail').value.trim();
+  const cat   = document.getElementById('evCat').value;
+  if (!validateRequired([[name,'Vendor Name']])) return;
+  if (phone && !/^\d{10}$/.test(phone)) { showToast('⚠️ Phone must be 10 digits', 'error'); return; }
+  vendors[i] = { ...vendors[i], name, phone, email, cat };
+  closeModal('editVendorModal');
+  save();
+  showToast('✅ Vendor updated!');
+}
+
+function loadVendors() {
+  const tb  = document.querySelector('#vtable tbody');
+  const sel = document.getElementById('puVendor');
+  if (!vendors.length) {
+    tb.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="e-icon">🏭</div><p>No vendors yet</p></div></td></tr>`;
+    if (sel) sel.innerHTML = '<option value="">— Select Vendor —</option>';
+    return;
+  }
+  const catBadge = c => c==='Raw Materials'?'badge-blue':c==='Finished Goods'?'badge-purple':c==='Services'?'badge-yellow':'badge-green';
+  tb.innerHTML = vendors.map((v,i) => `<tr>
+    <td><strong>${esc(v.name)}</strong></td>
+    <td>${esc(v.phone||'—')}</td>
+    <td>${esc(v.email||'—')}</td>
+    <td><span class="badge ${catBadge(v.cat)}">${esc(v.cat||'Other')}</span></td>
+    <td>${v.added||'—'}</td>
+    <td><div class="action-cell">
+      <button class="btn btn-warn btn-sm" onclick="editVendor(${i})">Edit</button>
+      <button class="btn btn-danger btn-sm" onclick="delVendor(${i})">Delete</button>
+    </div></td>
+  </tr>`).join('');
+  if (sel) sel.innerHTML = '<option value="">— Select Vendor —</option>' +
+    vendors.map(v => `<option value="${esc(v.name)}">${esc(v.name)}</option>`).join('');
+}
+
 // ===== SALES =====
 function updateSalePrice() {
   const name = document.getElementById('sproduct').value;
@@ -862,6 +1076,7 @@ function makeSale() {
   const name     = document.getElementById('sproduct').value;
   const customer = document.getElementById('scustomer').value;
   const qty      = Number(document.getElementById('sqty').value);
+  const status   = document.getElementById('sStatus').value || 'Paid';
   if (!name) { showToast('⚠️ Select a product', 'error'); return; }
   if (!qty || qty <= 0) { showToast('⚠️ Enter valid quantity', 'error'); return; }
   const p = products.find(x => x.name === name);
@@ -872,13 +1087,14 @@ function makeSale() {
   const gst      = +(subtotal * 0.18).toFixed(2);
   const grand    = +(subtotal + gst).toFixed(2);
   const date     = new Date().toLocaleString();
-  const sale = { name, customer: customer||'Walk-in', qty, subtotal, gst, grand, date };
+  const invNo    = nextInvoiceNo('sale');
+  const sale = { invNo, name, customer: customer||'Walk-in', qty, subtotal, gst, grand, status, date };
   sales.push(sale);
   document.getElementById('sqty').value = '';
   document.getElementById('sTotal').value = '';
   save();
-  showToast(`✅ Sale of ${qty}x ${name} recorded!`);
-  showInvoice(sale);
+  showToast(`✅ Invoice ${invNo} created!`);
+  showInvoice(sale, 'sale');
 }
 
 function delSale(i) {
@@ -899,6 +1115,7 @@ function editSale(i) {
   document.getElementById('esIndex').value = i;
   document.getElementById('esProduct').value = s.name;
   document.getElementById('esQty').value = s.qty;
+  document.getElementById('esStatus').value = s.status || 'Paid';
   // parse existing date into yyyy-mm-dd for the date input where possible
   let d = new Date(s.date);
   document.getElementById('esDate').value = isNaN(d) ? '' : d.toISOString().split('T')[0];
@@ -914,6 +1131,7 @@ function saveSaleEdit() {
   const newQty   = Number(document.getElementById('esQty').value);
   const customer = document.getElementById('esCustomer').value;
   const dateVal  = document.getElementById('esDate').value;
+  const status   = document.getElementById('esStatus').value || 'Paid';
   if (!newQty || newQty <= 0) { showToast('⚠️ Enter valid quantity', 'error'); return; }
 
   const s = sales[i];
@@ -936,7 +1154,7 @@ function saveSaleEdit() {
     ...s,
     qty: newQty,
     customer: customer || 'Walk-in',
-    subtotal, gst, grand,
+    subtotal, gst, grand, status,
     date: dateVal ? new Date(dateVal).toLocaleString() : s.date
   };
 
@@ -948,58 +1166,70 @@ function saveSaleEdit() {
 function loadSales() {
   const tb = document.querySelector('#stable tbody');
   if (!sales.length) {
-    tb.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="e-icon">🛒</div><p>No sales yet</p></div></td></tr>`;
+    tb.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="e-icon">🛒</div><p>No sales invoices yet</p></div></td></tr>`;
     return;
   }
   // FIX: map with real index first so edit/delete target the correct record after reversing for display
   const indexed = sales.map((s,i) => ({ ...s, _idx: i }));
   tb.innerHTML = [...indexed].reverse().map(s => `<tr>
+    <td><span class="badge badge-blue">${esc(s.invNo||'—')}</span></td>
     <td><strong>${esc(s.name)}</strong></td>
     <td>${esc(s.customer||'Walk-in')}</td>
     <td>${s.qty}</td>
     <td>₹${(s.subtotal||0).toLocaleString('en-IN')}</td>
     <td>₹${(s.gst||0).toLocaleString('en-IN')}</td>
     <td><strong>₹${(s.grand||0).toLocaleString('en-IN')}</strong></td>
+    <td>${statusBadge(s.status||'Paid')}</td>
     <td>${s.date}</td>
     <td><div class="action-cell">
+      <button class="btn btn-outline btn-sm" onclick="showInvoice(sales[${s._idx}],'sale')">View</button>
       <button class="btn btn-warn btn-sm" onclick="editSale(${s._idx})">Edit</button>
       <button class="btn btn-danger btn-sm" onclick="delSale(${s._idx})">Delete</button>
     </div></td>
   </tr>`).join('');
 }
 
-// ===== INVOICE =====
+// ===== INVOICE (shared by Sales & Purchase invoices) =====
 let currentInvoice = null;
+let currentInvoiceType = 'sale';
 
-function showInvoice(sale) {
-  currentInvoice = sale;
+function showInvoice(record, type='sale') {
+  currentInvoice = record;
+  currentInvoiceType = type;
+  const isSale   = type === 'sale';
+  const partyLbl = isSale ? 'Customer' : 'Vendor';
+  const party    = isSale ? record.customer : record.vendor;
+  const itemName = isSale ? record.name : record.item;
+  const rate     = isSale ? (record.subtotal/record.qty) : record.rate;
   const inv = `
     <div style="border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:12px">
-      <strong>ERP SaaS Pro</strong><br>
-      <span style="color:var(--muted)">Tax Invoice</span>
+      <strong>RECONS ERP Pro</strong><br>
+      <span style="color:var(--muted)">${isSale?'Tax Sales Invoice':'Purchase Invoice'}</span>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;font-size:12px">
-      <div><span style="color:var(--muted)">Customer:</span> ${esc(sale.customer)}</div>
-      <div><span style="color:var(--muted)">Date:</span> ${sale.date}</div>
+      <div><span style="color:var(--muted)">Invoice #:</span> ${esc(record.invNo||'—')}</div>
+      <div><span style="color:var(--muted)">Status:</span> ${statusBadge(record.status||'Paid')}</div>
+      <div><span style="color:var(--muted)">${partyLbl}:</span> ${esc(party||'—')}</div>
+      <div><span style="color:var(--muted)">Date:</span> ${record.date}</div>
     </div>
     <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px">
       <thead><tr style="border-bottom:1px solid var(--border)">
-        <th style="text-align:left;padding:6px;color:var(--muted)">Product</th>
+        <th style="text-align:left;padding:6px;color:var(--muted)">Item</th>
         <th style="text-align:right;padding:6px;color:var(--muted)">Qty</th>
         <th style="text-align:right;padding:6px;color:var(--muted)">Rate</th>
         <th style="text-align:right;padding:6px;color:var(--muted)">Amount</th>
       </tr></thead>
       <tbody><tr>
-        <td style="padding:8px 6px">${esc(sale.name)}</td>
-        <td style="text-align:right;padding:8px 6px">${sale.qty}</td>
-        <td style="text-align:right;padding:8px 6px">₹${(sale.subtotal/sale.qty).toLocaleString('en-IN')}</td>
-        <td style="text-align:right;padding:8px 6px">₹${sale.subtotal.toLocaleString('en-IN')}</td>
+        <td style="padding:8px 6px">${esc(itemName)}</td>
+        <td style="text-align:right;padding:8px 6px">${record.qty}</td>
+        <td style="text-align:right;padding:8px 6px">₹${rate.toLocaleString('en-IN')}</td>
+        <td style="text-align:right;padding:8px 6px">₹${record.subtotal.toLocaleString('en-IN')}</td>
       </tr></tbody>
     </table>
     <div style="text-align:right;border-top:1px solid var(--border);padding-top:12px">
-      <div>Subtotal: ₹${sale.subtotal.toLocaleString('en-IN')}</div>
-      <div style="color:var(--muted)">GST (18%): ₹${sale.gst.toLocaleString('en-IN')}</div>
-      <div style="font-size:18px;font-weight:700;color:var(--accent);margin-top:8px">Grand Total: ₹${sale.grand.toLocaleString('en-IN')}</div>
+      <div>Subtotal: ₹${record.subtotal.toLocaleString('en-IN')}</div>
+      <div style="color:var(--muted)">GST (18%): ₹${record.gst.toLocaleString('en-IN')}</div>
+      <div style="font-size:18px;font-weight:700;color:var(--accent);margin-top:8px">Grand Total: ₹${record.grand.toLocaleString('en-IN')}</div>
     </div>`;
   document.getElementById('invoiceContent').innerHTML = inv;
   document.getElementById('invoiceModal').classList.add('open');
@@ -1008,22 +1238,169 @@ function showInvoice(sale) {
 function printInvoiceModal() {
   if (!currentInvoice) return;
   const s = currentInvoice;
+  const isSale   = currentInvoiceType === 'sale';
+  const partyLbl = isSale ? 'Customer' : 'Vendor';
+  const party    = isSale ? s.customer : s.vendor;
+  const itemName = isSale ? s.name : s.item;
+  const rate     = isSale ? (s.subtotal/s.qty) : s.rate;
   const w = window.open('','_blank','width=600,height=700');
-  w.document.write(`<html><head><title>Invoice</title>
+  w.document.write(`<html><head><title>Invoice ${esc(s.invNo||'')}</title>
     <style>body{font-family:Arial;padding:40px;max-width:500px;margin:auto}
     table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:8px;text-align:left}
-    th{background:#f5f5f5}.total{font-size:20px;font-weight:bold;color:#0a6}</style></head><body>
-    <h2>🧾 TAX INVOICE</h2><h3>RECONS ERP Pro</h3><p><strong>Powered by ALOK</strong></p><hr>
-    <p><strong>Customer:</strong> ${esc(s.customer)}</p>
+    th{background:#f5f5f5}.total{font-size:20px;font-weight:bold;color:#0a6}
+    .status{display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:bold;color:#fff;background:${s.status==='Paid'?'#10b981':'#f43f5e'}}</style></head><body>
+    <h2>🧾 ${isSale?'TAX SALES INVOICE':'PURCHASE INVOICE'}</h2><h3>RECONS ERP Pro</h3><p><strong>Powered by ALOK</strong></p><hr>
+    <p><strong>Invoice #:</strong> ${esc(s.invNo||'—')} &nbsp; <span class="status">${esc(s.status||'Paid')}</span></p>
+    <p><strong>${partyLbl}:</strong> ${esc(party||'—')}</p>
     <p><strong>Date:</strong> ${s.date}</p>
-    <table><thead><tr><th>Product</th><th>Qty</th><th>Rate (₹)</th><th>Amount (₹)</th></tr></thead>
-    <tbody><tr><td>${esc(s.name)}</td><td>${s.qty}</td><td>${(s.subtotal/s.qty).toLocaleString('en-IN')}</td><td>${s.subtotal.toLocaleString('en-IN')}</td></tr></tbody></table>
+    <table><thead><tr><th>Item</th><th>Qty</th><th>Rate (₹)</th><th>Amount (₹)</th></tr></thead>
+    <tbody><tr><td>${esc(itemName)}</td><td>${s.qty}</td><td>${rate.toLocaleString('en-IN')}</td><td>${s.subtotal.toLocaleString('en-IN')}</td></tr></tbody></table>
     <p><strong>Subtotal:</strong> ₹${s.subtotal.toLocaleString('en-IN')}</p>
     <p><strong>GST @ 18%:</strong> ₹${s.gst.toLocaleString('en-IN')}</p>
     <p class="total"><strong>Grand Total: ₹${s.grand.toLocaleString('en-IN')}</strong></p>
     <hr><p style="text-align:center;">Thank you for your business.<br><strong>RECONS ERP Pro</strong></p>
     <script>window.print();<\/script></body></html>`);
   w.document.close();
+}
+
+// ===== PURCHASE INVOICES =====
+function refreshPurchaseItemList() {
+  const dl = document.getElementById('puItemList');
+  if (dl) dl.innerHTML = products.map(p => `<option value="${esc(p.name)}">`).join('');
+}
+
+function updatePurchaseTotal() {
+  const item = document.getElementById('puItem').value.trim();
+  const qty  = Number(document.getElementById('puQty').value) || 0;
+  let rate   = Number(document.getElementById('puRate').value) || 0;
+  // auto-fill rate from an existing product if the field is empty
+  const existing = products.find(x => x.name.toLowerCase() === item.toLowerCase());
+  if (existing && !document.getElementById('puRate').value) {
+    rate = existing.price;
+    document.getElementById('puRate').value = rate;
+  }
+  if (!qty || !rate) { document.getElementById('puTotal').value = ''; return; }
+  const grand = qty * rate * 1.18;
+  document.getElementById('puTotal').value = `₹${grand.toLocaleString('en-IN',{minimumFractionDigits:2})}`;
+}
+
+function makePurchase() {
+  const vendor = document.getElementById('puVendor').value;
+  const item   = document.getElementById('puItem').value.trim();
+  const qty    = Number(document.getElementById('puQty').value);
+  const rate   = Number(document.getElementById('puRate').value);
+  const status = document.getElementById('puStatus').value || 'Unpaid';
+  const dateVal= document.getElementById('puDate').value;
+  if (!vendor) { showToast('⚠️ Select a vendor', 'error'); return; }
+  if (!item) { showToast('⚠️ Enter an item/product', 'error'); return; }
+  if (!qty || qty <= 0) { showToast('⚠️ Enter valid quantity', 'error'); return; }
+  if (!rate || rate <= 0) { showToast('⚠️ Enter valid rate', 'error'); return; }
+
+  // link to existing product (case-insensitive) or create a new one
+  let p = products.find(x => x.name.toLowerCase() === item.toLowerCase());
+  if (p) { p.qty = (Number(p.qty)||0) + qty; p.price = rate; }
+  else { products.push({ name: item, cat: 'Other', qty, price: rate, low: 5, added: new Date().toLocaleDateString() }); }
+
+  const subtotal = qty * rate;
+  const gst      = +(subtotal * 0.18).toFixed(2);
+  const grand    = +(subtotal + gst).toFixed(2);
+  const date     = dateVal ? new Date(dateVal).toLocaleString() : new Date().toLocaleString();
+  const invNo    = nextInvoiceNo('purchase');
+  const purchase = { invNo, vendor, item, qty, rate, subtotal, gst, grand, status, date };
+  purchases.push(purchase);
+
+  ['puItem','puQty','puRate','puTotal'].forEach(id => document.getElementById(id).value='');
+  save();
+  showToast(`✅ Purchase Invoice ${invNo} created!`);
+  showInvoice(purchase, 'purchase');
+}
+
+function delPurchase(i) {
+  if (!confirm('Delete this purchase invoice? Linked stock will be reduced back.')) return;
+  const pu = purchases[i];
+  const p = products.find(x => x.name.toLowerCase() === pu.item.toLowerCase());
+  if (p) p.qty = Math.max(0, (Number(p.qty)||0) - Number(pu.qty||0));
+  purchases.splice(i, 1);
+  save();
+  showToast('🗑️ Purchase invoice deleted & stock adjusted', 'error');
+}
+
+function editPurchase(i) {
+  const pu = purchases[i];
+  if (!pu) return;
+  document.getElementById('epuIndex').value = i;
+  const sel = document.getElementById('epuVendor');
+  sel.innerHTML = vendors.map(v => `<option value="${esc(v.name)}">${esc(v.name)}</option>`).join('');
+  sel.value = pu.vendor;
+  document.getElementById('epuItem').value = pu.item;
+  document.getElementById('epuQty').value = pu.qty;
+  document.getElementById('epuRate').value = pu.rate;
+  document.getElementById('epuStatus').value = pu.status || 'Unpaid';
+  let d = new Date(pu.date);
+  document.getElementById('epuDate').value = isNaN(d) ? '' : d.toISOString().split('T')[0];
+  document.getElementById('editPurchaseModal').classList.add('open');
+}
+
+function savePurchaseEdit() {
+  const i       = Number(document.getElementById('epuIndex').value);
+  const vendor  = document.getElementById('epuVendor').value;
+  const newQty  = Number(document.getElementById('epuQty').value);
+  const newRate = Number(document.getElementById('epuRate').value);
+  const status  = document.getElementById('epuStatus').value || 'Unpaid';
+  const dateVal = document.getElementById('epuDate').value;
+  if (!newQty || newQty <= 0) { showToast('⚠️ Enter valid quantity', 'error'); return; }
+  if (!newRate || newRate <= 0) { showToast('⚠️ Enter valid rate', 'error'); return; }
+
+  const pu = purchases[i];
+  const p = products.find(x => x.name.toLowerCase() === pu.item.toLowerCase());
+  if (p) {
+    // remove old qty contribution, then add new qty
+    p.qty = Math.max(0, (Number(p.qty)||0) - Number(pu.qty||0)) + newQty;
+    p.price = newRate;
+  }
+
+  const subtotal = newQty * newRate;
+  const gst      = +(subtotal * 0.18).toFixed(2);
+  const grand    = +(subtotal + gst).toFixed(2);
+
+  purchases[i] = {
+    ...pu,
+    vendor: vendor || pu.vendor,
+    qty: newQty, rate: newRate,
+    subtotal, gst, grand, status,
+    date: dateVal ? new Date(dateVal).toLocaleString() : pu.date
+  };
+
+  closeModal('editPurchaseModal');
+  save();
+  showToast('✅ Purchase invoice updated & stock adjusted!');
+}
+
+function loadPurchases() {
+  const tb = document.querySelector('#putable tbody');
+  refreshPurchaseItemList();
+  if (!purchases.length) {
+    tb.innerHTML = `<tr><td colspan="11"><div class="empty-state"><div class="e-icon">📥</div><p>No purchase invoices yet</p></div></td></tr>`;
+    return;
+  }
+  const indexed = purchases.map((pu,i) => ({ ...pu, _idx: i }));
+  tb.innerHTML = [...indexed].reverse().map(pu => `<tr>
+    <td><span class="badge badge-purple">${esc(pu.invNo||'—')}</span></td>
+    <td>${esc(pu.vendor)}</td>
+    <td><strong>${esc(pu.item)}</strong></td>
+    <td>${pu.qty}</td>
+    <td>₹${(pu.rate||0).toLocaleString('en-IN')}</td>
+    <td>₹${(pu.subtotal||0).toLocaleString('en-IN')}</td>
+    <td>₹${(pu.gst||0).toLocaleString('en-IN')}</td>
+    <td><strong>₹${(pu.grand||0).toLocaleString('en-IN')}</strong></td>
+    <td>${statusBadge(pu.status||'Unpaid')}</td>
+    <td>${pu.date}</td>
+    <td><div class="action-cell">
+      <button class="btn btn-outline btn-sm" onclick="showInvoice(purchases[${pu._idx}],'purchase')">View</button>
+      <button class="btn btn-warn btn-sm" onclick="editPurchase(${pu._idx})">Edit</button>
+      <button class="btn btn-danger btn-sm" onclick="delPurchase(${pu._idx})">Delete</button>
+    </div></td>
+  </tr>`).join('');
 }
 
 // ===== EXPENSES =====
@@ -1138,9 +1515,10 @@ function loadUsers() {
 
 // ===== DASHBOARD =====
 function loadDashboard() {
-  const totalRevenue  = sales.reduce((a,b) => a+(Number(b.grand)||0), 0);
-  const totalExpenses = expenses.reduce((a,b) => a+(Number(b.amount)||0), 0);
-  const profit        = totalRevenue - totalExpenses;
+  const totalRevenue    = sales.reduce((a,b) => a+(Number(b.grand)||0), 0);
+  const totalPurchases  = purchases.reduce((a,b) => a+(Number(b.grand)||0), 0);
+  const totalExpenses   = expenses.reduce((a,b) => a+(Number(b.amount)||0), 0) + totalPurchases;
+  const profit           = totalRevenue - totalExpenses;
   document.getElementById('d_products').textContent    = products.length;
   document.getElementById('d_customers').textContent   = customers.length;
   document.getElementById('d_sales_count').textContent = sales.length;
@@ -1213,6 +1591,7 @@ function renderDashboardCharts() {
 
   const expCats = {};
   expenses.forEach(e => { expCats[e.cat] = (expCats[e.cat]||0) + (Number(e.amount)||0); });
+  if (purchases.length) expCats['Inventory Purchases'] = purchases.reduce((a,b)=>a+(Number(b.grand)||0),0);
   destroyChart('expenseChart');
   const ec = document.getElementById('expenseChart');
   if (ec && Object.keys(expCats).length) {
@@ -1225,10 +1604,11 @@ function renderDashboardCharts() {
 }
 
 function renderReportCharts() {
-  const totalRevenue  = sales.reduce((a,b) => a+(Number(b.grand)||0), 0);
-  const totalExpenses = expenses.reduce((a,b) => a+(Number(b.amount)||0), 0);
-  const totalGST      = sales.reduce((a,b) => a+(Number(b.gst)||0), 0);
-  const profit        = totalRevenue - totalExpenses;
+  const totalRevenue   = sales.reduce((a,b) => a+(Number(b.grand)||0), 0);
+  const totalPurchases = purchases.reduce((a,b) => a+(Number(b.grand)||0), 0);
+  const totalExpenses  = expenses.reduce((a,b) => a+(Number(b.amount)||0), 0) + totalPurchases;
+  const totalGST       = sales.reduce((a,b) => a+(Number(b.gst)||0), 0);
+  const profit         = totalRevenue - totalExpenses;
   document.getElementById('r_revenue').textContent  = '₹'+totalRevenue.toLocaleString('en-IN');
   document.getElementById('r_expenses').textContent = '₹'+totalExpenses.toLocaleString('en-IN');
   document.getElementById('r_profit').textContent   = '₹'+profit.toLocaleString('en-IN');
@@ -1263,6 +1643,7 @@ function renderReportCharts() {
 
   const expCats = {};
   expenses.forEach(e => { expCats[e.cat]=(expCats[e.cat]||0)+(Number(e.amount)||0); });
+  if (purchases.length) expCats['Inventory Purchases'] = purchases.reduce((a,b)=>a+(Number(b.grand)||0),0);
   destroyChart('expCatChart');
   const ecc = document.getElementById('expCatChart');
   if (ecc) {
@@ -1292,6 +1673,14 @@ function filterTable(tableId, inputId) {
   const q = document.getElementById(inputId).value.toLowerCase();
   document.querySelectorAll(`#${tableId} tbody tr`).forEach(row => {
     row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+function filterByStatus(tableId, selectId) {
+  const val = document.getElementById(selectId).value;
+  document.querySelectorAll(`#${tableId} tbody tr`).forEach(row => {
+    if (!val) { row.style.display = ''; return; }
+    row.style.display = row.textContent.includes(val) ? '' : 'none';
   });
 }
 
@@ -1504,7 +1893,9 @@ function renderImportHistory() {
 function loadAll() {
   loadProducts();
   loadCustomers();
+  loadVendors();
   loadSales();
+  loadPurchases();
   loadExpenses();
   loadUsers();
   loadDashboard();
@@ -1513,6 +1904,8 @@ function loadAll() {
 document.addEventListener('DOMContentLoaded', () => {
   const ed = document.getElementById('expDate');
   if (ed) ed.value = new Date().toISOString().split('T')[0];
+  const pd = document.getElementById('puDate');
+  if (pd) pd.value = new Date().toISOString().split('T')[0];
 });
 </script>
 </body>
