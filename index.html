@@ -175,6 +175,10 @@ tbody tr:last-child td { border-bottom: none; }
   <div class="layout">
     <div class="sidebar" id="sidebar">
       <div class="sidebar-logo">⬡ RECONS ERP Pro Powered By ALOK<span>Business Suite v2.0</span></div>
+      <div style="padding:12px 16px;border-bottom:1px solid var(--border)">
+        <label style="display:block;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px">Active Company</label>
+        <select id="companySwitcher" onchange="switchCompany(this.value)" style="width:100%;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif"></select>
+      </div>
       <div class="nav-section">Main</div>
       <button class="nav-item active" onclick="show('dashboard')"><span class="icon">📊</span> Dashboard</button>
       <button class="nav-item" onclick="show('inventory')"><span class="icon">📦</span> Inventory</button>
@@ -188,6 +192,7 @@ tbody tr:last-child td { border-bottom: none; }
       <button class="nav-item" onclick="show('reports')"><span class="icon">📈</span> Reports</button>
       <div class="nav-section">Tools</div>
       <button class="nav-item" onclick="show('bulkimport')"><span class="icon">📂</span> Bulk Import</button>
+      <button class="nav-item" onclick="show('companies')"><span class="icon">🏢</span> Companies</button>
       <div class="sidebar-footer">
         <div class="user-pill">
           <div class="user-avatar" id="userAvatar">A</div>
@@ -424,6 +429,11 @@ tbody tr:last-child td { border-bottom: none; }
             <div class="form-row" style="margin-top:10px">
               <div class="form-group"><label>Phone</label><input id="coPhone" placeholder="Contact number(s)"></div>
               <div class="form-group"><label>Email</label><input id="coEmail" type="email" placeholder="Email address"></div>
+            </div>
+            <div class="form-row" style="margin-top:10px;align-items:center">
+              <div class="form-group" style="max-width:240px"><label>Company Logo</label><input type="file" id="coLogoInput" accept="image/*" onchange="handleCompanyLogoUpload(this)"></div>
+              <div class="form-group" style="max-width:90px"><label>Preview</label><img id="coLogoPreview" src="" style="height:44px;border-radius:6px;background:#fff;padding:3px;display:none" alt="logo preview"></div>
+              <button class="btn btn-outline btn-sm" style="margin-top:16px" onclick="removeCompanyLogo()">✕ Remove Logo</button>
               <button class="btn btn-accent" style="margin-top:16px" onclick="saveCompanyProfile()">💾 Save Profile</button>
             </div>
           </div>
@@ -545,6 +555,32 @@ tbody tr:last-child td { border-bottom: none; }
         <div class="card" style="margin-top:8px">
           <div class="card-title">Import History (this session)</div>
           <div id="importHistory"><div class="empty-state"><div class="e-icon">📂</div><p>No imports yet</p></div></div>
+        </div>
+      </div>
+
+      <!-- COMPANIES -->
+      <div id="companies" class="section">
+        <div class="page-header"><h1>Companies</h1><p>Manage multiple companies — each has its own logo, invoice details, products, sales and more</p></div>
+        <div class="card" id="companiesAdminOnlyMsg" style="display:none"><div class="empty-state"><div class="e-icon">🔒</div><p>You need Admin privileges to manage companies.</p></div></div>
+        <div id="companiesContent">
+          <div class="card">
+            <div class="card-title">Add Company</div>
+            <div class="form-row">
+              <div class="form-group"><label>Company Name</label><input id="newCompanyName" placeholder="e.g. Acme Traders Pvt Ltd"></div>
+              <div class="form-group" style="max-width:220px"><label>Logo (optional)</label><input type="file" id="newCompanyLogoInput" accept="image/*" onchange="handleNewCompanyLogo(this)"></div>
+              <div class="form-group" style="max-width:80px"><label>Preview</label><img id="newCompanyLogoPreview" src="" style="height:40px;border-radius:6px;background:#fff;padding:3px;display:none" alt="logo preview"></div>
+              <button class="btn btn-accent" style="margin-top:16px" onclick="addCompany()">+ Add Company</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">All Companies</div>
+            <div class="table-wrap">
+              <table id="companiesTable">
+                <thead><tr><th>Logo</th><th>Name</th><th>Created</th><th>Actions</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -700,43 +736,90 @@ const DEFAULT_COMPANY = {
   phone: "0129-4062114, 9811818330",
   email: ""
 };
-let companyProfile = { ...DEFAULT_COMPANY, ...(JSON.parse(localStorage.getItem("erp_company")) || {}) };
+// ===== MULTI-COMPANY SUPPORT =====
+// Every data key is namespaced per company so each company has fully isolated data.
+function ck(base) { return base + '_' + activeCompanyId; }
+
+const LEGACY_KEYS = ['erp_products','erp_customers','erp_vendors','erp_sales','erp_purchases','erp_expenses','erp_inv_counters','erp_company'];
+
+function migrateLegacyData(companyId) {
+  // one-time move of old un-namespaced (single-company) keys into this company's namespace
+  LEGACY_KEYS.forEach(k => {
+    const val = localStorage.getItem(k);
+    if (val !== null && localStorage.getItem(k + '_' + companyId) === null) {
+      localStorage.setItem(k + '_' + companyId, val);
+    }
+  });
+}
+
+function genCompanyId() { return 'co_' + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+let companies = JSON.parse(localStorage.getItem("erp_companies_list")) || [];
+if (!Array.isArray(companies) || companies.length === 0) {
+  companies = [{ id: 'default', name: DEFAULT_COMPANY.name, created: new Date().toLocaleDateString() }];
+  localStorage.setItem("erp_companies_list", JSON.stringify(companies));
+}
+let activeCompanyId = localStorage.getItem("erp_active_company") || companies[0].id;
+if (!companies.some(co => co.id === activeCompanyId)) activeCompanyId = companies[0].id;
+migrateLegacyData(activeCompanyId);
+
+function getActiveLogo() { return (companyProfile && companyProfile.logo) || COMPANY_LOGO; }
 
 // ===== STATE =====
 const DEFAULT_ADMIN = { username:"admin", password:"123", role:"admin", created: new Date().toLocaleDateString() };
 
-let products  = JSON.parse(localStorage.getItem("erp_products"))  || [];
-let customers = JSON.parse(localStorage.getItem("erp_customers")) || [];
-let vendors   = JSON.parse(localStorage.getItem("erp_vendors"))   || [];
-let sales     = (JSON.parse(localStorage.getItem("erp_sales")) || []).map(s => ({
-  ...s,
-  qty:      Number(s.qty)      || 0,
-  subtotal: Number(s.subtotal) || 0,
-  gst:      Number(s.gst)      || 0,
-  grand:    Number(s.grand)    || 0,
-  status:   s.status || 'Paid',
-  invNo:    s.invNo  || null,
-}));
-let purchases = (JSON.parse(localStorage.getItem("erp_purchases")) || []).map(pu => ({
-  ...pu,
-  qty:      Number(pu.qty)      || 0,
-  rate:     Number(pu.rate)     || 0,
-  subtotal: Number(pu.subtotal) || 0,
-  gst:      Number(pu.gst)      || 0,
-  grand:    Number(pu.grand)    || 0,
-  status:   pu.status || 'Unpaid',
-}));
+function parseSales(raw) {
+  return (raw || []).map(s => ({
+    ...s,
+    qty:      Number(s.qty)      || 0,
+    subtotal: Number(s.subtotal) || 0,
+    gst:      Number(s.gst)      || 0,
+    grand:    Number(s.grand)    || 0,
+    status:   s.status || 'Paid',
+    invNo:    s.invNo  || null,
+  }));
+}
+function parsePurchases(raw) {
+  return (raw || []).map(pu => ({
+    ...pu,
+    qty:      Number(pu.qty)      || 0,
+    rate:     Number(pu.rate)     || 0,
+    subtotal: Number(pu.subtotal) || 0,
+    gst:      Number(pu.gst)      || 0,
+    grand:    Number(pu.grand)    || 0,
+    status:   pu.status || 'Unpaid',
+  }));
+}
 // FIX: sanitize expenses on load — strip any ₹/currency symbols, force numeric amount
-let expenses  = (JSON.parse(localStorage.getItem("erp_expenses")) || []).map(e => ({
-  ...e,
-  amount: Number(String(e.amount).replace(/[^\d.]/g, '')) || 0,
-}));
-let invoiceCounters = JSON.parse(localStorage.getItem("erp_inv_counters")) || { sale:0, purchase:0 };
+function parseExpenses(raw) {
+  return (raw || []).map(e => ({
+    ...e,
+    amount: Number(String(e.amount).replace(/[^\d.]/g, '')) || 0,
+  }));
+}
+
+let companyProfile, products, customers, vendors, sales, purchases, expenses, invoiceCounters;
+let importPreviews = {};
+let importHistory  = [];
+
+function loadCompanyData() {
+  companyProfile  = { ...DEFAULT_COMPANY, ...(JSON.parse(localStorage.getItem(ck("erp_company"))) || {}) };
+  products        = JSON.parse(localStorage.getItem(ck("erp_products")))  || [];
+  customers       = JSON.parse(localStorage.getItem(ck("erp_customers"))) || [];
+  vendors         = JSON.parse(localStorage.getItem(ck("erp_vendors")))   || [];
+  sales           = parseSales(JSON.parse(localStorage.getItem(ck("erp_sales"))));
+  purchases       = parsePurchases(JSON.parse(localStorage.getItem(ck("erp_purchases"))));
+  expenses        = parseExpenses(JSON.parse(localStorage.getItem(ck("erp_expenses"))));
+  invoiceCounters = JSON.parse(localStorage.getItem(ck("erp_inv_counters"))) || { sale:0, purchase:0 };
+  importPreviews  = {};
+  importHistory   = [];
+}
+loadCompanyData();
 
 function nextInvoiceNo(type) {
   const key = type === 'sale' ? 'sale' : 'purchase';
   invoiceCounters[key] = (invoiceCounters[key]||0) + 1;
-  localStorage.setItem("erp_inv_counters", JSON.stringify(invoiceCounters));
+  localStorage.setItem(ck("erp_inv_counters"), JSON.stringify(invoiceCounters));
   const prefix = type === 'sale' ? 'SAL' : 'PUR';
   const yr = new Date().getFullYear();
   return `${prefix}-${yr}-${String(invoiceCounters[key]).padStart(4,'0')}`;
@@ -830,6 +913,8 @@ function login() {
   if (currentRole !== 'admin') {
     document.getElementById('adminOnlyMsg').style.display = 'block';
     document.getElementById('userMgmtContent').style.display = 'none';
+    document.getElementById('companiesAdminOnlyMsg').style.display = 'block';
+    document.getElementById('companiesContent').style.display = 'none';
   }
   document.getElementById('expDate').value = new Date().toISOString().split('T')[0];
   document.getElementById('puDate').value = new Date().toISOString().split('T')[0];
@@ -843,8 +928,8 @@ function login() {
 }
 
 function resetAndLogin() {
-  if (!confirm('⚠️ This will clear ALL app data and restore the default admin login (admin / 123).\n\nContinue?')) return;
-  ['erp_products','erp_customers','erp_vendors','erp_sales','erp_purchases','erp_expenses','erp_users','erp_inv_counters','erp_company'].forEach(k => localStorage.removeItem(k));
+  if (!confirm('⚠️ This will clear ALL app data (every company, logo and user) and restore the default admin login (admin / 123).\n\nContinue?')) return;
+  Object.keys(localStorage).filter(k => k.startsWith('erp_')).forEach(k => localStorage.removeItem(k));
   location.reload();
 }
 
@@ -876,14 +961,107 @@ function switchTab(tabId, btn) {
 
 // ===== SAVE =====
 function save() {
-  localStorage.setItem("erp_products",  JSON.stringify(products));
-  localStorage.setItem("erp_customers", JSON.stringify(customers));
-  localStorage.setItem("erp_vendors",   JSON.stringify(vendors));
-  localStorage.setItem("erp_sales",     JSON.stringify(sales));
-  localStorage.setItem("erp_purchases", JSON.stringify(purchases));
-  localStorage.setItem("erp_expenses",  JSON.stringify(expenses));
-  localStorage.setItem("erp_users",     JSON.stringify(users));
+  localStorage.setItem(ck("erp_products"),  JSON.stringify(products));
+  localStorage.setItem(ck("erp_customers"), JSON.stringify(customers));
+  localStorage.setItem(ck("erp_vendors"),   JSON.stringify(vendors));
+  localStorage.setItem(ck("erp_sales"),     JSON.stringify(sales));
+  localStorage.setItem(ck("erp_purchases"), JSON.stringify(purchases));
+  localStorage.setItem(ck("erp_expenses"),  JSON.stringify(expenses));
+  localStorage.setItem("erp_users",         JSON.stringify(users));
   loadAll();
+}
+
+// ===== COMPANIES =====
+function switchCompany(id) {
+  if (!id || id === activeCompanyId) return;
+  if (!companies.some(co => co.id === id)) return;
+  activeCompanyId = id;
+  localStorage.setItem("erp_active_company", id);
+  loadCompanyData();
+  loadAll();
+  renderCompanySwitcher();
+  renderCompanies();
+  show('dashboard');
+  showToast(`🏢 Switched to ${esc((companies.find(co => co.id === id)||{}).name || '')}`);
+}
+
+let newCompanyLogoData = null;
+
+function handleNewCompanyLogo(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 2*1024*1024) { showToast('⚠️ Logo image too large (max 2MB)', 'error'); input.value=''; return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    newCompanyLogoData = e.target.result;
+    const img = document.getElementById('newCompanyLogoPreview');
+    if (img) { img.src = newCompanyLogoData; img.style.display = 'inline-block'; }
+  };
+  reader.readAsDataURL(file);
+}
+
+function addCompany() {
+  const nameEl = document.getElementById('newCompanyName');
+  const name = (nameEl.value || '').trim();
+  if (!name) { showToast('⚠️ Company name required', 'error'); return; }
+  const id = genCompanyId();
+  companies.push({ id, name, created: new Date().toLocaleDateString() });
+  localStorage.setItem("erp_companies_list", JSON.stringify(companies));
+  const profile = { ...DEFAULT_COMPANY, name, tagline1:'', tagline2:'', addr:'', state:'', gstin:'', phone:'', email:'', logo: newCompanyLogoData || null };
+  localStorage.setItem('erp_company_' + id, JSON.stringify(profile));
+  nameEl.value = '';
+  newCompanyLogoData = null;
+  const prev = document.getElementById('newCompanyLogoPreview');
+  if (prev) { prev.src=''; prev.style.display='none'; }
+  const inp = document.getElementById('newCompanyLogoInput');
+  if (inp) inp.value = '';
+  renderCompanies();
+  renderCompanySwitcher();
+  showToast(`✅ Company "${name}" added — switch to it to start entering data`);
+}
+
+function deleteCompany(id) {
+  if (companies.length <= 1) { showToast("⚠️ Can't delete your only company", 'error'); return; }
+  const co = companies.find(c => c.id === id);
+  if (!co) return;
+  if (!confirm(`Delete "${co.name}" and ALL its data (products, sales, customers, etc.)? This cannot be undone.`)) return;
+  LEGACY_KEYS.forEach(k => localStorage.removeItem(k + '_' + id));
+  companies = companies.filter(c => c.id !== id);
+  localStorage.setItem("erp_companies_list", JSON.stringify(companies));
+  if (activeCompanyId === id) {
+    switchCompany(companies[0].id);
+  } else {
+    renderCompanies();
+    renderCompanySwitcher();
+  }
+  showToast('🗑️ Company deleted', 'error');
+}
+
+function renderCompanySwitcher() {
+  const sel = document.getElementById('companySwitcher');
+  if (!sel) return;
+  sel.innerHTML = companies.map(co => `<option value="${co.id}" ${co.id===activeCompanyId?'selected':''}>${esc(co.name)}</option>`).join('');
+}
+
+function renderCompanies() {
+  const tb = document.querySelector('#companiesTable tbody');
+  if (!tb) return;
+  if (!companies.length) { tb.innerHTML = ''; return; }
+  tb.innerHTML = companies.map(co => {
+    let profile = {};
+    try { profile = JSON.parse(localStorage.getItem('erp_company_' + co.id)) || {}; } catch(e){}
+    const logo = profile.logo || COMPANY_LOGO;
+    const isActive = co.id === activeCompanyId;
+    return `<tr>
+      <td><img src="${logo}" style="height:32px;border-radius:4px;background:#fff;padding:2px" alt="logo"></td>
+      <td><strong>${esc(co.name)}</strong>${isActive?' <span class="badge badge-green">Active</span>':''}</td>
+      <td>${co.created||'—'}</td>
+      <td>
+        ${isActive?'':`<button class="btn btn-outline btn-sm" onclick="switchCompany('${co.id}')">Switch to</button> `}
+        <button class="btn btn-danger btn-sm" onclick="deleteCompany('${co.id}')" ${companies.length<=1?'disabled':''}>Delete</button>
+      </td>
+    </tr>`;
+  }).join('');
 }
 
 // ===== TOAST =====
@@ -1275,7 +1453,7 @@ function invoiceHTML(record, type) {
   <div style="background:#ffffff;color:#1e293b;padding:32px;font-family:Arial,Helvetica,sans-serif;font-size:13px">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #0f172a;padding-bottom:14px;margin-bottom:14px">
       <div style="display:flex;gap:14px;align-items:center">
-        <img src="${COMPANY_LOGO}" style="height:52px" alt="logo">
+        <img src="${c.logo || COMPANY_LOGO}" style="height:52px" alt="logo">
         <div>
           <div style="font-size:16px;font-weight:700;color:#0f172a">${esc(c.name)}</div>
           <div style="font-size:11px;color:#475569">${esc(c.tagline1)}</div>
@@ -1594,6 +1772,9 @@ function loadExpenses() {
 }
 
 // ===== USERS =====
+// undefined = no change made this session, null = user removed the logo, string = new base64 logo
+let pendingCompanyLogo = undefined;
+
 function loadCompanyProfile() {
   const c = companyProfile;
   const map = { coName:'name', coTagline1:'tagline1', coTagline2:'tagline2', coAddr:'addr', coState:'state', coGstin:'gstin', coPhone:'phone', coEmail:'email' };
@@ -1601,9 +1782,39 @@ function loadCompanyProfile() {
     const el = document.getElementById(elId);
     if (el) el.value = c[key] || '';
   });
+  pendingCompanyLogo = undefined;
+  const img = document.getElementById('coLogoPreview');
+  if (img) {
+    if (c.logo) { img.src = c.logo; img.style.display = 'inline-block'; }
+    else { img.src = ''; img.style.display = 'none'; }
+  }
+  const fileInput = document.getElementById('coLogoInput');
+  if (fileInput) fileInput.value = '';
+}
+
+function handleCompanyLogoUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 2*1024*1024) { showToast('⚠️ Logo image too large (max 2MB)', 'error'); input.value=''; return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    pendingCompanyLogo = e.target.result;
+    const img = document.getElementById('coLogoPreview');
+    if (img) { img.src = pendingCompanyLogo; img.style.display = 'inline-block'; }
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeCompanyLogo() {
+  pendingCompanyLogo = null;
+  const img = document.getElementById('coLogoPreview');
+  if (img) { img.src = ''; img.style.display = 'none'; }
+  const fileInput = document.getElementById('coLogoInput');
+  if (fileInput) fileInput.value = '';
 }
 
 function saveCompanyProfile() {
+  const logo = pendingCompanyLogo !== undefined ? pendingCompanyLogo : (companyProfile.logo || null);
   companyProfile = {
     name: document.getElementById('coName').value.trim() || DEFAULT_COMPANY.name,
     tagline1: document.getElementById('coTagline1').value.trim(),
@@ -1613,8 +1824,14 @@ function saveCompanyProfile() {
     gstin: document.getElementById('coGstin').value.trim(),
     phone: document.getElementById('coPhone').value.trim(),
     email: document.getElementById('coEmail').value.trim(),
+    logo: logo,
   };
-  localStorage.setItem("erp_company", JSON.stringify(companyProfile));
+  localStorage.setItem(ck("erp_company"), JSON.stringify(companyProfile));
+  const co = companies.find(c => c.id === activeCompanyId);
+  if (co) { co.name = companyProfile.name; localStorage.setItem("erp_companies_list", JSON.stringify(companies)); }
+  pendingCompanyLogo = undefined;
+  renderCompanySwitcher();
+  renderCompanies();
   showToast('✅ Company profile saved — will appear on new invoice previews');
 }
 
@@ -1847,7 +2064,7 @@ function exportSalesPDF() {
     td{padding:9px;border-bottom:1px solid #e2e8f0}tr:nth-child(even){background:#f8fafc}
     .total{font-size:18px;font-weight:bold;margin-top:20px;text-align:right;color:#0a6}
     .letterhead{display:flex;gap:14px;align-items:center;margin-bottom:6px}</style></head><body>
-    <div class="letterhead"><img src="${COMPANY_LOGO}" style="height:44px"><div><strong style="font-size:15px">${esc(companyProfile.name)}</strong><br><span style="font-size:11px;color:#64748b">${esc(companyProfile.tagline1)}</span></div></div>
+    <div class="letterhead"><img src="${getActiveLogo()}" style="height:44px"><div><strong style="font-size:15px">${esc(companyProfile.name)}</strong><br><span style="font-size:11px;color:#64748b">${esc(companyProfile.tagline1)}</span></div></div>
     <h1>📊 Sales Report</h1><p>Generated: ${new Date().toLocaleString()}</p>
     <table><thead><tr><th>Invoice #</th><th>Product</th><th>Customer</th><th>Qty</th><th>Subtotal</th><th>GST</th><th>Grand Total</th><th>Status</th><th>Date</th></tr></thead>
     <tbody>${sales.map(s=>`<tr><td>${esc(s.invNo||'—')}</td><td>${esc(s.name)}</td><td>${esc(s.customer||'Walk-in')}</td><td>${s.qty}</td><td>₹${(s.subtotal||0).toLocaleString('en-IN')}</td><td>₹${(s.gst||0).toLocaleString('en-IN')}</td><td><strong>₹${(s.grand||0).toLocaleString('en-IN')}</strong></td><td>${esc(s.status||'Paid')}</td><td>${s.date}</td></tr>`).join('')}</tbody></table>
@@ -1857,8 +2074,6 @@ function exportSalesPDF() {
 }
 
 // ===== BULK IMPORT =====
-let importPreviews = {};
-let importHistory  = [];
 
 const TEMPLATES = {
   products:  { headers:['name','category','qty','price','low_stock'], sample:[['Widget A','Electronics','50','299','10'],['T-Shirt Blue','Clothing','120','499','20']] },
@@ -2041,6 +2256,9 @@ function loadAll() {
   loadUsers();
   loadCompanyProfile();
   loadDashboard();
+  renderCompanySwitcher();
+  renderCompanies();
+  renderImportHistory();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
