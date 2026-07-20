@@ -92,6 +92,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
 .btn-danger { background: var(--danger); color: white; }
 .btn-success { background: var(--success); color: #0a0f1e; }
+.btn-warn { background: var(--accent2); color: #0a0f1e; }
 .btn-sm { padding: 5px 10px; font-size: 12px; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .table-wrap { overflow-x: auto; }
@@ -141,6 +142,7 @@ tbody tr:last-child td { border-bottom: none; }
 .imp-hist-item:last-child { border-bottom: none; }
 /* FIX: prevent text wrapping in table cells that should be single-line */
 #ptable tbody td:first-child { white-space: normal; max-width: 180px; word-break: break-word; }
+.action-cell { display: flex; gap: 6px; flex-wrap: nowrap; }
 </style>
 </head>
 <body>
@@ -272,7 +274,7 @@ tbody tr:last-child td { border-bottom: none; }
           </div>
           <div class="table-wrap">
             <table id="stable">
-              <thead><tr><th>Product</th><th>Customer</th><th>Qty</th><th>Subtotal</th><th>GST</th><th>Grand Total</th><th>Date</th></tr></thead>
+              <thead><tr><th>Product</th><th>Customer</th><th>Qty</th><th>Subtotal</th><th>GST</th><th>Grand Total</th><th>Date</th><th>Actions</th></tr></thead>
               <tbody></tbody>
             </table>
           </div>
@@ -478,6 +480,68 @@ tbody tr:last-child td { border-bottom: none; }
   </div>
 </div>
 
+<!-- EDIT PRODUCT MODAL -->
+<div class="modal-bg" id="editProductModal">
+  <div class="modal">
+    <h3>✏️ Edit Product</h3>
+    <input type="hidden" id="epIndex">
+    <div class="form-row" style="flex-direction:column;align-items:stretch;gap:14px">
+      <div class="form-group"><label>Product Name</label><input id="epName"></div>
+      <div class="form-group"><label>Category</label>
+        <select id="epCat"><option>Electronics</option><option>Clothing</option><option>Food</option><option>Other</option></select></div>
+      <div class="form-row">
+        <div class="form-group"><label>Quantity</label><input id="epQty" type="number" min="0"></div>
+        <div class="form-group"><label>Price (₹)</label><input id="epPrice" type="number" min="0"></div>
+        <div class="form-group"><label>Low Stock At</label><input id="epLow" type="number" min="0"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('editProductModal')">Cancel</button>
+      <button class="btn btn-accent" onclick="saveProductEdit()">💾 Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT EXPENSE MODAL -->
+<div class="modal-bg" id="editExpenseModal">
+  <div class="modal">
+    <h3>✏️ Edit Expense</h3>
+    <input type="hidden" id="eeIndex">
+    <div class="form-row" style="flex-direction:column;align-items:stretch;gap:14px">
+      <div class="form-group"><label>Description</label><input id="eeDesc"></div>
+      <div class="form-group"><label>Category</label>
+        <select id="eeCat"><option>Inventory Purchase</option><option>Utilities</option><option>Salaries</option><option>Marketing</option><option>Rent</option><option>Other</option></select></div>
+      <div class="form-row">
+        <div class="form-group"><label>Amount (₹)</label><input id="eeAmount" type="number" min="0"></div>
+        <div class="form-group"><label>Date</label><input id="eeDate" type="date"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('editExpenseModal')">Cancel</button>
+      <button class="btn btn-accent" onclick="saveExpenseEdit()">💾 Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT SALE MODAL -->
+<div class="modal-bg" id="editSaleModal">
+  <div class="modal">
+    <h3>✏️ Edit Sale</h3>
+    <input type="hidden" id="esIndex">
+    <div class="form-row" style="flex-direction:column;align-items:stretch;gap:14px">
+      <div class="form-group"><label>Product</label><input id="esProduct" readonly style="opacity:0.7"></div>
+      <div class="form-group"><label>Customer</label><select id="esCustomer"><option value="Walk-in">Walk-in Customer</option></select></div>
+      <div class="form-group"><label>Quantity</label><input id="esQty" type="number" min="1"></div>
+      <div class="form-group"><label>Date</label><input id="esDate" type="date"></div>
+      <p style="font-size:12px;color:var(--muted)">Changing quantity will automatically adjust stock and recalculate GST &amp; totals.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('editSaleModal')">Cancel</button>
+      <button class="btn btn-accent" onclick="saveSaleEdit()">💾 Save Changes</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -666,6 +730,47 @@ function delProduct(i) {
   showToast('🗑️ Product deleted', 'error');
 }
 
+// ===== EDIT PRODUCT =====
+function editProduct(i) {
+  const p = products[i];
+  if (!p) return;
+  document.getElementById('epIndex').value = i;
+  document.getElementById('epName').value  = p.name;
+  document.getElementById('epCat').value   = p.cat || 'Other';
+  document.getElementById('epQty').value   = p.qty;
+  document.getElementById('epPrice').value = p.price;
+  document.getElementById('epLow').value   = p.low;
+  document.getElementById('editProductModal').classList.add('open');
+}
+
+function saveProductEdit() {
+  const i     = Number(document.getElementById('epIndex').value);
+  const name  = document.getElementById('epName').value.trim();
+  const cat   = document.getElementById('epCat').value;
+  const qty   = Number(document.getElementById('epQty').value);
+  const price = Number(document.getElementById('epPrice').value);
+  const low   = Number(document.getElementById('epLow').value) || 5;
+
+  if (!validateRequired([[name,'Product Name']])) return;
+  if (qty < 0 || price <= 0) { showToast('⚠️ Enter valid qty and price', 'error'); return; }
+
+  // FIX: prevent renaming into a duplicate of another existing product
+  const dupe = products.find((p,idx) => idx!==i && p.name.toLowerCase()===name.toLowerCase());
+  if (dupe) { showToast(`⚠️ Another product named "${name}" already exists`, 'error'); return; }
+
+  const oldName = products[i].name;
+  products[i] = { ...products[i], name, cat, qty, price, low };
+
+  // FIX: keep sales history in sync if the product name changed
+  if (oldName !== name) {
+    sales.forEach(s => { if (s.name === oldName) s.name = name; });
+  }
+
+  closeModal('editProductModal');
+  save();
+  showToast(`✅ Product "${name}" updated!`);
+}
+
 // FIX 2: loadProducts — use esc() for safe HTML, single-line product names in table
 function loadProducts() {
   const tb = document.querySelector('#ptable tbody');
@@ -686,7 +791,10 @@ function loadProducts() {
       <td>${p.qty}</td>
       <td>₹${p.price.toLocaleString('en-IN')}</td>
       <td>${status}</td>
-      <td><button class="btn btn-danger btn-sm" onclick="delProduct(${i})">Delete</button></td>
+      <td><div class="action-cell">
+        <button class="btn btn-warn btn-sm" onclick="editProduct(${i})">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="delProduct(${i})">Delete</button>
+      </div></td>
     </tr>`;
   }).join('');
 
@@ -773,13 +881,79 @@ function makeSale() {
   showInvoice(sale);
 }
 
+function delSale(i) {
+  if (!confirm('Delete this sale? Stock will be restored to inventory.')) return;
+  const s = sales[i];
+  // FIX: restore stock to matching product when a sale is deleted
+  const p = products.find(x => x.name === s.name);
+  if (p) p.qty += Number(s.qty) || 0;
+  sales.splice(i, 1);
+  save();
+  showToast('🗑️ Sale deleted & stock restored', 'error');
+}
+
+// ===== EDIT SALE =====
+function editSale(i) {
+  const s = sales[i];
+  if (!s) return;
+  document.getElementById('esIndex').value = i;
+  document.getElementById('esProduct').value = s.name;
+  document.getElementById('esQty').value = s.qty;
+  // parse existing date into yyyy-mm-dd for the date input where possible
+  let d = new Date(s.date);
+  document.getElementById('esDate').value = isNaN(d) ? '' : d.toISOString().split('T')[0];
+  const sel = document.getElementById('esCustomer');
+  sel.innerHTML = '<option value="Walk-in">Walk-in Customer</option>' +
+    customers.map(c => `<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
+  sel.value = s.customer && [...sel.options].some(o=>o.value===s.customer) ? s.customer : 'Walk-in';
+  document.getElementById('editSaleModal').classList.add('open');
+}
+
+function saveSaleEdit() {
+  const i        = Number(document.getElementById('esIndex').value);
+  const newQty   = Number(document.getElementById('esQty').value);
+  const customer = document.getElementById('esCustomer').value;
+  const dateVal  = document.getElementById('esDate').value;
+  if (!newQty || newQty <= 0) { showToast('⚠️ Enter valid quantity', 'error'); return; }
+
+  const s = sales[i];
+  const p = products.find(x => x.name === s.name);
+  if (!p) { showToast('⚠️ Linked product no longer exists', 'error'); return; }
+
+  // FIX: return old qty to stock, then check new qty is available before applying
+  const availableAfterRestore = p.qty + Number(s.qty);
+  if (newQty > availableAfterRestore) {
+    showToast(`⚠️ Only ${availableAfterRestore} in stock for this edit`, 'error');
+    return;
+  }
+  p.qty = availableAfterRestore - newQty;
+
+  const subtotal = newQty * p.price;
+  const gst      = +(subtotal * 0.18).toFixed(2);
+  const grand    = +(subtotal + gst).toFixed(2);
+
+  sales[i] = {
+    ...s,
+    qty: newQty,
+    customer: customer || 'Walk-in',
+    subtotal, gst, grand,
+    date: dateVal ? new Date(dateVal).toLocaleString() : s.date
+  };
+
+  closeModal('editSaleModal');
+  save();
+  showToast('✅ Sale updated & stock adjusted!');
+}
+
 function loadSales() {
   const tb = document.querySelector('#stable tbody');
   if (!sales.length) {
-    tb.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="e-icon">🛒</div><p>No sales yet</p></div></td></tr>`;
+    tb.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="e-icon">🛒</div><p>No sales yet</p></div></td></tr>`;
     return;
   }
-  tb.innerHTML = [...sales].reverse().map(s => `<tr>
+  // FIX: map with real index first so edit/delete target the correct record after reversing for display
+  const indexed = sales.map((s,i) => ({ ...s, _idx: i }));
+  tb.innerHTML = [...indexed].reverse().map(s => `<tr>
     <td><strong>${esc(s.name)}</strong></td>
     <td>${esc(s.customer||'Walk-in')}</td>
     <td>${s.qty}</td>
@@ -787,6 +961,10 @@ function loadSales() {
     <td>₹${(s.gst||0).toLocaleString('en-IN')}</td>
     <td><strong>₹${(s.grand||0).toLocaleString('en-IN')}</strong></td>
     <td>${s.date}</td>
+    <td><div class="action-cell">
+      <button class="btn btn-warn btn-sm" onclick="editSale(${s._idx})">Edit</button>
+      <button class="btn btn-danger btn-sm" onclick="delSale(${s._idx})">Delete</button>
+    </div></td>
   </tr>`).join('');
 }
 
@@ -871,6 +1049,34 @@ function delExpense(i) {
   showToast('🗑️ Expense deleted', 'error');
 }
 
+// ===== EDIT EXPENSE =====
+function editExpense(i) {
+  const e = expenses[i];
+  if (!e) return;
+  document.getElementById('eeIndex').value  = i;
+  document.getElementById('eeDesc').value   = e.desc;
+  document.getElementById('eeCat').value    = e.cat || 'Other';
+  document.getElementById('eeAmount').value = e.amount;
+  // try to normalize date into yyyy-mm-dd for the date input
+  let d = new Date(e.date);
+  document.getElementById('eeDate').value = isNaN(d) ? '' : d.toISOString().split('T')[0];
+  document.getElementById('editExpenseModal').classList.add('open');
+}
+
+function saveExpenseEdit() {
+  const i      = Number(document.getElementById('eeIndex').value);
+  const desc   = document.getElementById('eeDesc').value.trim();
+  const cat    = document.getElementById('eeCat').value;
+  const amount = Number(document.getElementById('eeAmount').value);
+  const dateVal= document.getElementById('eeDate').value;
+  if (!validateRequired([[desc,'Description']])) return;
+  if (!amount || amount <= 0) { showToast('⚠️ Enter valid amount', 'error'); return; }
+  expenses[i] = { ...expenses[i], desc, cat, amount, date: dateVal || expenses[i].date };
+  closeModal('editExpenseModal');
+  save();
+  showToast('✅ Expense updated!');
+}
+
 // FIX 3: loadExpenses — correct index for delete button (store actual index in data attribute)
 function loadExpenses() {
   const tb = document.querySelector('#exptable tbody');
@@ -887,7 +1093,10 @@ function loadExpenses() {
       <td><span class="badge ${catBadge}">${esc(e.cat)}</span></td>
       <td>₹${e.amount.toLocaleString('en-IN')}</td>
       <td>${e.date}</td>
-      <td><button class="btn btn-danger btn-sm" onclick="delExpense(${e._idx})">Delete</button></td>
+      <td><div class="action-cell">
+        <button class="btn btn-warn btn-sm" onclick="editExpense(${e._idx})">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="delExpense(${e._idx})">Delete</button>
+      </div></td>
     </tr>`;
   }).join('');
 }
