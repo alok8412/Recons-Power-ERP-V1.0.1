@@ -207,6 +207,7 @@ tbody tr:last-child td { border-bottom: none; }
         <button class="nav-item" onclick="show('hrLeave')"><span class="icon">🌴</span> Leave Requests</button>
         <button class="nav-item" onclick="show('hrPayroll')"><span class="icon">💰</span> Payroll</button>
         <div class="nav-section">CRM</div>
+        <button class="nav-item" onclick="show('crmLeads')"><span class="icon">🎯</span> Leads</button>
         <button class="nav-item" onclick="show('crm')"><span class="icon">🕒</span> Status Log</button>
         <div class="nav-section">Analytics</div>
         <button class="nav-item" onclick="show('reports')"><span class="icon">📈</span> Reports</button>
@@ -694,6 +695,52 @@ tbody tr:last-child td { border-bottom: none; }
         </div>
       </div>
 
+      <!-- CRM: LEADS -->
+      <div id="crmLeads" class="section">
+        <div class="page-header"><h1>CRM — Leads</h1><p>Track, manage & convert leads through your sales pipeline</p></div>
+        <div class="stats-grid" id="leadStatsGrid"></div>
+        <div class="card">
+          <div class="card-title">Add Lead</div>
+          <div class="form-row">
+            <div class="form-group"><label>Lead Name</label><input id="ldName" placeholder="e.g. Ankit Mehta"></div>
+            <div class="form-group"><label>Company</label><input id="ldCompany" placeholder="e.g. Mehta Traders"></div>
+            <div class="form-group"><label>Phone</label><input id="ldPhone" placeholder="e.g. 9876543210" maxlength="10"></div>
+            <div class="form-group"><label>Email</label><input id="ldEmail" type="email" placeholder="e.g. ankit@mail.com"></div>
+          </div>
+          <div class="form-row" style="margin-top:12px">
+            <div class="form-group" style="max-width:160px"><label>Source</label>
+              <select id="ldSource"><option>Website</option><option>Referral</option><option>Cold Call</option><option>Social Media</option><option>Walk-in</option><option>Other</option></select></div>
+            <div class="form-group" style="max-width:160px"><label>Stage</label>
+              <select id="ldStage"><option>New</option><option>Contacted</option><option>Qualified</option><option>Proposal</option><option>Won</option><option>Lost</option></select></div>
+            <div class="form-group" style="max-width:170px"><label>Est. Value (₹)</label><input id="ldValue" type="number" placeholder="e.g. 50000" min="0"></div>
+            <div class="form-group"><label>Notes</label><input id="ldNotes" placeholder="Optional notes"></div>
+            <button class="btn btn-accent" style="margin-top:16px" onclick="addLead()">+ Add Lead</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Leads Pipeline</div>
+          <div class="search-bar">
+            <input id="ldSearch" placeholder="🔍 Search leads by name, company, phone or email..." oninput="filterTable('ldtable','ldSearch')">
+            <select id="ldStageFilter" style="max-width:160px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px" onchange="filterByStatus('ldtable','ldStageFilter')">
+              <option value="">All Stages</option>
+              <option value="New">New</option>
+              <option value="Contacted">Contacted</option>
+              <option value="Qualified">Qualified</option>
+              <option value="Proposal">Proposal</option>
+              <option value="Won">Won</option>
+              <option value="Lost">Lost</option>
+            </select>
+            <button class="btn btn-outline btn-sm" onclick="exportTableCSV('ldtable','leads.csv')">⬇ CSV</button>
+          </div>
+          <div class="table-wrap">
+            <table id="ldtable">
+              <thead><tr><th>Name</th><th>Company</th><th>Phone</th><th>Email</th><th>Source</th><th>Stage</th><th>Est. Value</th><th>Created</th><th>Actions</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       <!-- CRM: STATUS LOG -->
       <div id="crm" class="section">
         <div class="page-header"><h1>CRM — Status Log</h1><p>Full timeline of every status change across quotations, sales & purchase invoices</p></div>
@@ -710,6 +757,7 @@ tbody tr:last-child td { border-bottom: none; }
               <option value="Employee">Employee</option>
               <option value="Leave Request">Leave Request</option>
               <option value="Payroll">Payroll</option>
+              <option value="Lead">Lead</option>
             </select>
             <button class="btn btn-outline btn-sm" onclick="exportTableCSV('crmtable','status_log.csv')">⬇ CSV</button>
           </div>
@@ -760,7 +808,7 @@ tbody tr:last-child td { border-bottom: none; }
 
       <!-- BULK IMPORT -->
       <div id="bulkimport" class="section">
-        <div class="page-header"><h1>Bulk Import</h1><p>Upload CSV files to import Products, Customers, Sales or Expenses in one shot</p></div>
+        <div class="page-header"><h1>Bulk Import</h1><p>Upload CSV files to import Products, Customers, Sales, Expenses or HRMS records in one shot</p></div>
         <div class="card" style="border-color:var(--accent);background:rgba(34,211,238,0.04)">
           <div class="card-title">📋 How It Works</div>
           <div style="font-size:13px;color:var(--muted);line-height:2">1. Choose an import type &nbsp;→&nbsp; 2. Download the sample template &nbsp;→&nbsp; 3. Fill it in &nbsp;→&nbsp; 4. Upload &amp; Preview &nbsp;→&nbsp; 5. Confirm Import</div>
@@ -770,6 +818,10 @@ tbody tr:last-child td { border-bottom: none; }
           <button class="tab" onclick="switchImportTab('imp_customers',this)">👥 Customers</button>
           <button class="tab" onclick="switchImportTab('imp_sales',this)">🛒 Sales</button>
           <button class="tab" onclick="switchImportTab('imp_expenses',this)">📤 Expenses</button>
+          <button class="tab" onclick="switchImportTab('imp_employees',this)">🧑‍💼 Employees</button>
+          <button class="tab" onclick="switchImportTab('imp_attendance',this)">🗓️ Attendance</button>
+          <button class="tab" onclick="switchImportTab('imp_leave',this)">🌴 Leave</button>
+          <button class="tab" onclick="switchImportTab('imp_payroll',this)">💰 Payroll</button>
         </div>
         <div id="imp_products">
           <div class="two-col">
@@ -813,6 +865,50 @@ tbody tr:last-child td { border-bottom: none; }
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="card-title" style="margin:0">3 · Preview &amp; Confirm</div><div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="clearImport('expenses')">✕ Clear</button><button class="btn btn-success" onclick="confirmImport('expenses')">✅ Import All</button></div></div>
             <div id="preview_status_expenses" style="margin-bottom:10px;font-size:13px"></div>
             <div class="table-wrap"><table id="preview_table_expenses"></table></div>
+          </div>
+        </div>
+        <div id="imp_employees" style="display:none">
+          <div class="two-col">
+            <div class="card"><div class="card-title">1 · Download Template</div><p style="font-size:13px;color:var(--muted);margin-bottom:14px">Required columns: <code style="background:var(--surface2);padding:2px 6px;border-radius:4px;font-size:12px">name, designation, department, phone, email, salary, join_date, status</code></p><button class="btn btn-outline" onclick="downloadTemplate('employees')">⬇ Employees Template</button></div>
+            <div class="card"><div class="card-title">2 · Upload CSV</div><div class="drop-zone" id="dz_employees" onclick="document.getElementById('csv_employees').click()" ondragover="dzOver(event,'dz_employees')" ondragleave="dzLeave('dz_employees')" ondrop="dzDrop(event,'employees')"><div class="dz-icon">📁</div><div class="dz-text">Click or drag &amp; drop CSV here</div><div class="dz-hint">.csv files only</div></div><input type="file" id="csv_employees" accept=".csv" style="display:none" onchange="handleCSV(event,'employees')"></div>
+          </div>
+          <div class="card" id="preview_employees" style="display:none">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="card-title" style="margin:0">3 · Preview &amp; Confirm</div><div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="clearImport('employees')">✕ Clear</button><button class="btn btn-success" onclick="confirmImport('employees')">✅ Import All</button></div></div>
+            <div id="preview_status_employees" style="margin-bottom:10px;font-size:13px"></div>
+            <div class="table-wrap"><table id="preview_table_employees"></table></div>
+          </div>
+        </div>
+        <div id="imp_attendance" style="display:none">
+          <div class="two-col">
+            <div class="card"><div class="card-title">1 · Download Template</div><p style="font-size:13px;color:var(--muted);margin-bottom:14px">Required columns: <code style="background:var(--surface2);padding:2px 6px;border-radius:4px;font-size:12px">employee, date, status</code> — employee must match an existing Employee name</p><button class="btn btn-outline" onclick="downloadTemplate('attendance')">⬇ Attendance Template</button></div>
+            <div class="card"><div class="card-title">2 · Upload CSV</div><div class="drop-zone" id="dz_attendance" onclick="document.getElementById('csv_attendance').click()" ondragover="dzOver(event,'dz_attendance')" ondragleave="dzLeave('dz_attendance')" ondrop="dzDrop(event,'attendance')"><div class="dz-icon">📁</div><div class="dz-text">Click or drag &amp; drop CSV here</div><div class="dz-hint">.csv files only</div></div><input type="file" id="csv_attendance" accept=".csv" style="display:none" onchange="handleCSV(event,'attendance')"></div>
+          </div>
+          <div class="card" id="preview_attendance" style="display:none">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="card-title" style="margin:0">3 · Preview &amp; Confirm</div><div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="clearImport('attendance')">✕ Clear</button><button class="btn btn-success" onclick="confirmImport('attendance')">✅ Import All</button></div></div>
+            <div id="preview_status_attendance" style="margin-bottom:10px;font-size:13px"></div>
+            <div class="table-wrap"><table id="preview_table_attendance"></table></div>
+          </div>
+        </div>
+        <div id="imp_leave" style="display:none">
+          <div class="two-col">
+            <div class="card"><div class="card-title">1 · Download Template</div><p style="font-size:13px;color:var(--muted);margin-bottom:14px">Required columns: <code style="background:var(--surface2);padding:2px 6px;border-radius:4px;font-size:12px">employee, from, to, reason, status</code> — employee must match an existing Employee name</p><button class="btn btn-outline" onclick="downloadTemplate('leave')">⬇ Leave Template</button></div>
+            <div class="card"><div class="card-title">2 · Upload CSV</div><div class="drop-zone" id="dz_leave" onclick="document.getElementById('csv_leave').click()" ondragover="dzOver(event,'dz_leave')" ondragleave="dzLeave('dz_leave')" ondrop="dzDrop(event,'leave')"><div class="dz-icon">📁</div><div class="dz-text">Click or drag &amp; drop CSV here</div><div class="dz-hint">.csv files only</div></div><input type="file" id="csv_leave" accept=".csv" style="display:none" onchange="handleCSV(event,'leave')"></div>
+          </div>
+          <div class="card" id="preview_leave" style="display:none">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="card-title" style="margin:0">3 · Preview &amp; Confirm</div><div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="clearImport('leave')">✕ Clear</button><button class="btn btn-success" onclick="confirmImport('leave')">✅ Import All</button></div></div>
+            <div id="preview_status_leave" style="margin-bottom:10px;font-size:13px"></div>
+            <div class="table-wrap"><table id="preview_table_leave"></table></div>
+          </div>
+        </div>
+        <div id="imp_payroll" style="display:none">
+          <div class="two-col">
+            <div class="card"><div class="card-title">1 · Download Template</div><p style="font-size:13px;color:var(--muted);margin-bottom:14px">Required columns: <code style="background:var(--surface2);padding:2px 6px;border-radius:4px;font-size:12px">employee, month, deductions</code> — employee must match an existing Employee name; month format YYYY-MM</p><button class="btn btn-outline" onclick="downloadTemplate('payroll')">⬇ Payroll Template</button></div>
+            <div class="card"><div class="card-title">2 · Upload CSV</div><div class="drop-zone" id="dz_payroll" onclick="document.getElementById('csv_payroll').click()" ondragover="dzOver(event,'dz_payroll')" ondragleave="dzLeave('dz_payroll')" ondrop="dzDrop(event,'payroll')"><div class="dz-icon">📁</div><div class="dz-text">Click or drag &amp; drop CSV here</div><div class="dz-hint">.csv files only</div></div><input type="file" id="csv_payroll" accept=".csv" style="display:none" onchange="handleCSV(event,'payroll')"></div>
+          </div>
+          <div class="card" id="preview_payroll" style="display:none">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="card-title" style="margin:0">3 · Preview &amp; Confirm</div><div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="clearImport('payroll')">✕ Clear</button><button class="btn btn-success" onclick="confirmImport('payroll')">✅ Import All</button></div></div>
+            <div id="preview_status_payroll" style="margin-bottom:10px;font-size:13px"></div>
+            <div class="table-wrap"><table id="preview_table_payroll"></table></div>
           </div>
         </div>
         <div class="card" style="margin-top:8px">
@@ -935,6 +1031,34 @@ tbody tr:last-child td { border-bottom: none; }
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('editEmployeeModal')">Cancel</button>
       <button class="btn btn-accent" onclick="saveEmployeeEdit()">💾 Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT LEAD MODAL -->
+<div class="modal-bg" id="editLeadModal">
+  <div class="modal">
+    <h3>✏️ Edit Lead</h3>
+    <input type="hidden" id="ldIndex">
+    <div class="form-row" style="flex-direction:column;align-items:stretch;gap:14px">
+      <div class="form-group"><label>Lead Name</label><input id="ldEditName"></div>
+      <div class="form-group"><label>Company</label><input id="ldEditCompany"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Phone</label><input id="ldEditPhone" maxlength="10"></div>
+        <div class="form-group"><label>Email</label><input id="ldEditEmail" type="email"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Source</label>
+          <select id="ldEditSource"><option>Website</option><option>Referral</option><option>Cold Call</option><option>Social Media</option><option>Walk-in</option><option>Other</option></select></div>
+        <div class="form-group"><label>Stage</label>
+          <select id="ldEditStage"><option>New</option><option>Contacted</option><option>Qualified</option><option>Proposal</option><option>Won</option><option>Lost</option></select></div>
+      </div>
+      <div class="form-group"><label>Est. Value (₹)</label><input id="ldEditValue" type="number" min="0"></div>
+      <div class="form-group"><label>Notes</label><input id="ldEditNotes"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('editLeadModal')">Cancel</button>
+      <button class="btn btn-accent" onclick="saveLeadEdit()">💾 Save Changes</button>
     </div>
   </div>
 </div>
@@ -1165,6 +1289,7 @@ function parseExpenses(raw) {
 
 let companyProfile, products, customers, vendors, sales, purchases, expenses, quotations, invoiceCounters, statusLog;
 let employees, attendance, leaves, payroll;
+let leads;
 let importPreviews = {};
 let importHistory  = [];
 
@@ -1185,6 +1310,8 @@ function loadCompanyData() {
   attendance      = JSON.parse(localStorage.getItem(ck("erp_attendance"))) || [];
   leaves          = JSON.parse(localStorage.getItem(ck("erp_leaves")))     || [];
   payroll         = JSON.parse(localStorage.getItem(ck("erp_payroll")))    || [];
+  // ===== CRM data =====
+  leads           = JSON.parse(localStorage.getItem(ck("erp_leads")))      || [];
   importPreviews  = {};
   importHistory   = [];
 }
@@ -1236,7 +1363,8 @@ function genericStatusBadge(status) {
     Paid:'badge-green', Unpaid:'badge-red', Deleted:'badge-red',
     Active:'badge-green', Inactive:'badge-red',
     Pending:'badge-yellow', Approved:'badge-green',
-    Present:'badge-green', Absent:'badge-red', 'Half Day':'badge-yellow', 'On Leave':'badge-purple'
+    Present:'badge-green', Absent:'badge-red', 'Half Day':'badge-yellow', 'On Leave':'badge-purple',
+    New:'badge-blue', Contacted:'badge-yellow', Qualified:'badge-purple', Proposal:'badge-purple', Won:'badge-green', Lost:'badge-red'
   };
   return `<span class="badge ${map[status]||'badge-blue'}">${esc(status)}</span>`;
 }
@@ -1357,6 +1485,7 @@ function show(id) {
   document.getElementById('sidebar').classList.remove('open');
   if (id === 'reports') renderReportCharts();
   if (id === 'crm') renderStatusLog();
+  if (id === 'crmLeads') loadLeads();
 }
 
 function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
@@ -1402,6 +1531,7 @@ function save() {
   localStorage.setItem(ck("erp_attendance"),JSON.stringify(attendance));
   localStorage.setItem(ck("erp_leaves"),    JSON.stringify(leaves));
   localStorage.setItem(ck("erp_payroll"),   JSON.stringify(payroll));
+  localStorage.setItem(ck("erp_leads"),     JSON.stringify(leads));
   localStorage.setItem("erp_users",         JSON.stringify(users));
   loadAll();
 }
@@ -2950,11 +3080,15 @@ const TEMPLATES = {
   products:  { headers:['name','category','qty','price','low_stock'], sample:[['Widget A','Electronics','50','299','10'],['T-Shirt Blue','Clothing','120','499','20']] },
   customers: { headers:['name','phone','email','type'],               sample:[['Rahul Sharma','9876543210','rahul@email.com','Regular'],['Priya Singh','9123456789','priya@mail.com','VIP']] },
   sales:     { headers:['product_name','customer','qty','date'],      sample:[['Widget A','Rahul Sharma','2','2025-04-10'],['T-Shirt Blue','Walk-in','5','2025-04-11']] },
-  expenses:  { headers:['description','category','amount','date'],    sample:[['Office Rent','Rent','15000','2025-04-01'],['Staff Salary','Salaries','30000','2025-04-01']] }
+  expenses:  { headers:['description','category','amount','date'],    sample:[['Office Rent','Rent','15000','2025-04-01'],['Staff Salary','Salaries','30000','2025-04-01']] },
+  employees:  { headers:['name','designation','department','phone','email','salary','join_date','status'], sample:[['Priya Verma','Sales Executive','Sales','9876543210','priya@company.com','35000','2025-01-15','Active'],['Rohit Nair','Accountant','Finance','9123456780','rohit@company.com','40000','2025-02-01','Active']] },
+  attendance: { headers:['employee','date','status'],                 sample:[['Priya Verma','2025-04-10','Present'],['Rohit Nair','2025-04-10','Absent']] },
+  leave:      { headers:['employee','from','to','reason','status'],   sample:[['Priya Verma','2025-04-15','2025-04-16','Family function','Pending'],['Rohit Nair','2025-04-20','2025-04-20','Medical','Approved']] },
+  payroll:    { headers:['employee','month','deductions'],            sample:[['Priya Verma','2025-04','1000'],['Rohit Nair','2025-04','0']] }
 };
 
 function switchImportTab(tabId, btn) {
-  ['imp_products','imp_customers','imp_sales','imp_expenses'].forEach(t => {
+  ['imp_products','imp_customers','imp_sales','imp_expenses','imp_employees','imp_attendance','imp_leave','imp_payroll'].forEach(t => {
     const el = document.getElementById(t); if (el) el.style.display='none';
   });
   document.getElementById(tabId).style.display='block';
@@ -3033,6 +3167,31 @@ function parseAndPreview(text, type) {
       if (!row.description) errors.push('description required');
       if (isNaN(Number(row.amount))||Number(row.amount)<=0) errors.push('invalid amount');
     }
+    if (type==='employees') {
+      if (!row.name) errors.push('name required');
+      if (!row.designation) errors.push('designation required');
+      if (isNaN(Number(row.salary))||Number(row.salary)<=0) errors.push('invalid salary');
+      if (row.phone && !/^\d{10}$/.test(row.phone)) errors.push('phone must be 10 digits');
+      if (employees.find(e=>e.name.toLowerCase()===String(row.name).toLowerCase())) errors.push('employee already exists');
+    }
+    if (type==='attendance') {
+      if (!row.employee) errors.push('employee required');
+      else if (!employees.find(e=>e.name.toLowerCase()===row.employee.toLowerCase())) errors.push('unknown employee');
+      if (!row.date) errors.push('date required');
+      if (row.status && !['Present','Absent','Half Day','On Leave'].includes(row.status)) errors.push('invalid status');
+    }
+    if (type==='leave') {
+      if (!row.employee) errors.push('employee required');
+      else if (!employees.find(e=>e.name.toLowerCase()===row.employee.toLowerCase())) errors.push('unknown employee');
+      if (!row.from || !row.to) errors.push('from/to required');
+      if (row.status && !['Pending','Approved','Rejected'].includes(row.status)) errors.push('invalid status');
+    }
+    if (type==='payroll') {
+      if (!row.employee) errors.push('employee required');
+      else if (!employees.find(e=>e.name.toLowerCase()===row.employee.toLowerCase())) errors.push('unknown employee');
+      if (!row.month) errors.push('month required');
+      if (row.deductions && isNaN(Number(row.deductions))) errors.push('invalid deductions');
+    }
     return {...row, _row:i+2, _errors:errors, _ok:errors.length===0};
   });
   importPreviews[type] = validated;
@@ -3098,6 +3257,53 @@ function confirmImport(type) {
       imported++;
     });
   }
+  if (type==='employees') {
+    rows.forEach(r => {
+      // FIX: skip duplicate employee names during bulk import too
+      if (employees.find(e=>e.name.toLowerCase()===r.name.toLowerCase())) return;
+      const status = r.status || 'Active';
+      employees.push({name:r.name,designation:r.designation,dept:r.department||'Other',phone:r.phone||'',email:r.email||'',salary:Number(r.salary),joinDate:r.join_date||new Date().toLocaleDateString(),status});
+      logStatusChange('Employee', r.name, r.department||'Other', null, status);
+      imported++;
+    });
+  }
+  if (type==='attendance') {
+    rows.forEach(r => {
+      const emp = employees.find(e=>e.name.toLowerCase()===r.employee.toLowerCase());
+      if (!emp) return;
+      const status = r.status || 'Present';
+      const existing = attendance.find(a=>a.emp===emp.name && a.date===r.date);
+      if (existing) existing.status = status;
+      else attendance.push({emp:emp.name,date:r.date,status});
+      imported++;
+    });
+  }
+  if (type==='leave') {
+    rows.forEach(r => {
+      const emp = employees.find(e=>e.name.toLowerCase()===r.employee.toLowerCase());
+      if (!emp) return;
+      const from = new Date(r.from), to = new Date(r.to);
+      const days = isNaN(from)||isNaN(to) ? 1 : Math.max(1, Math.round((to-from)/86400000)+1);
+      const status = r.status || 'Pending';
+      leaves.push({emp:emp.name,from:r.from,to:r.to,days,reason:r.reason||'',status,appliedDate:new Date().toLocaleString()});
+      logStatusChange('Leave Request', `${emp.name} (${r.from} → ${r.to})`, emp.name, null, status);
+      imported++;
+    });
+  }
+  if (type==='payroll') {
+    rows.forEach(r => {
+      const emp = employees.find(e=>e.name.toLowerCase()===r.employee.toLowerCase());
+      if (!emp) return;
+      // FIX: skip duplicate payroll for same employee+month, same rule as manual generation
+      if (payroll.find(p=>p.emp===emp.name && p.month===r.month)) return;
+      const deductions = Number(r.deductions)||0;
+      const basic = Number(emp.salary)||0;
+      const net = Math.max(0, +(basic - deductions).toFixed(2));
+      payroll.push({emp:emp.name,month:r.month,basic,deductions,net,status:'Unpaid',date:new Date().toLocaleString()});
+      logStatusChange('Payroll', `${emp.name} — ${r.month}`, emp.name, null, 'Unpaid');
+      imported++;
+    });
+  }
   importHistory.unshift({type,count:imported,total:rows.length+(importPreviews[type].filter(r=>!r._ok).length),time:new Date().toLocaleString()});
   renderImportHistory();
   save();
@@ -3108,7 +3314,7 @@ function confirmImport(type) {
 function renderImportHistory() {
   const el=document.getElementById('importHistory');
   if (!importHistory.length) { el.innerHTML=`<div class="empty-state"><div class="e-icon">📂</div><p>No imports yet</p></div>`; return; }
-  const icons={products:'📦',customers:'👥',sales:'🛒',expenses:'📤'};
+  const icons={products:'📦',customers:'👥',sales:'🛒',expenses:'📤',employees:'🧑‍💼',attendance:'🗓️',leave:'🌴',payroll:'💰'};
   el.innerHTML=importHistory.map(h=>`
     <div class="imp-hist-item">
       <div>${icons[h.type]||'📂'} <strong>${h.count}</strong> ${h.type} imported <span style="color:var(--muted)">(${h.total} rows parsed)</span></div>
@@ -3132,7 +3338,7 @@ function renderStatusLog() {
     tb.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="e-icon">🕒</div><p>No status changes logged yet</p></div></td></tr>`;
     return;
   }
-  const icons = { Quotation:'🧾', 'Sales Invoice':'🛒', 'Purchase Invoice':'📥', Employee:'🧑‍💼', 'Leave Request':'🌴', Payroll:'💰' };
+  const icons = { Quotation:'🧾', 'Sales Invoice':'🛒', 'Purchase Invoice':'📥', Employee:'🧑‍💼', 'Leave Request':'🌴', Payroll:'💰', Lead:'🎯' };
   tb.innerHTML = statusLog.map(l => `<tr>
     <td>${esc(l.time)}</td>
     <td><span class="badge badge-purple">${icons[l.entity]||'📌'} ${esc(l.entity)}</span></td>
@@ -3141,6 +3347,123 @@ function renderStatusLog() {
     <td>${genericStatusBadge(l.oldStatus)}</td>
     <td>${genericStatusBadge(l.newStatus)}</td>
     <td>${esc(l.user||'System')}</td>
+  </tr>`).join('');
+}
+
+// ===== CRM: LEADS =====
+function addLead() {
+  const name    = document.getElementById('ldName').value.trim();
+  const company = document.getElementById('ldCompany').value.trim();
+  const phone   = document.getElementById('ldPhone').value.trim();
+  const email   = document.getElementById('ldEmail').value.trim();
+  const source  = document.getElementById('ldSource').value;
+  const stage   = document.getElementById('ldStage').value || 'New';
+  const value   = Number(document.getElementById('ldValue').value) || 0;
+  const notes   = document.getElementById('ldNotes').value.trim();
+  if (!validateRequired([[name,'Lead Name']])) return;
+  if (phone && !/^\d{10}$/.test(phone)) { showToast('⚠️ Phone must be 10 digits', 'error'); return; }
+  leads.push({ name, company, phone, email, source, stage, value, notes, created: new Date().toLocaleDateString() });
+  logStatusChange('Lead', name, company, null, stage);
+  ['ldName','ldCompany','ldPhone','ldEmail','ldValue','ldNotes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('ldSource').value = 'Website';
+  document.getElementById('ldStage').value = 'New';
+  save();
+  loadLeads();
+  showToast(`✅ Lead "${name}" added!`);
+}
+
+function delLead(i) {
+  if (!confirm('Delete this lead?')) return;
+  const l = leads[i];
+  logStatusChange('Lead', l.name, l.company, l.stage, 'Deleted');
+  leads.splice(i, 1);
+  save();
+  loadLeads();
+  showToast('🗑️ Lead deleted', 'error');
+}
+
+function editLead(i) {
+  const l = leads[i];
+  if (!l) return;
+  document.getElementById('ldIndex').value = i;
+  document.getElementById('ldEditName').value = l.name;
+  document.getElementById('ldEditCompany').value = l.company || '';
+  document.getElementById('ldEditPhone').value = l.phone || '';
+  document.getElementById('ldEditEmail').value = l.email || '';
+  document.getElementById('ldEditSource').value = l.source || 'Website';
+  document.getElementById('ldEditStage').value = l.stage || 'New';
+  document.getElementById('ldEditValue').value = l.value || '';
+  document.getElementById('ldEditNotes').value = l.notes || '';
+  document.getElementById('editLeadModal').classList.add('open');
+}
+
+function saveLeadEdit() {
+  const i = Number(document.getElementById('ldIndex').value);
+  const l = leads[i];
+  if (!l) return;
+  const name    = document.getElementById('ldEditName').value.trim();
+  const company = document.getElementById('ldEditCompany').value.trim();
+  const phone   = document.getElementById('ldEditPhone').value.trim();
+  const email   = document.getElementById('ldEditEmail').value.trim();
+  const source  = document.getElementById('ldEditSource').value;
+  const stage   = document.getElementById('ldEditStage').value || 'New';
+  const value   = Number(document.getElementById('ldEditValue').value) || 0;
+  const notes   = document.getElementById('ldEditNotes').value.trim();
+  if (!validateRequired([[name,'Lead Name']])) return;
+  if (phone && !/^\d{10}$/.test(phone)) { showToast('⚠️ Phone must be 10 digits', 'error'); return; }
+  if (stage !== l.stage) logStatusChange('Lead', name, company, l.stage, stage);
+  leads[i] = { ...l, name, company, phone, email, source, stage, value, notes };
+  closeModal('editLeadModal');
+  save();
+  loadLeads();
+  showToast('✅ Lead updated!');
+}
+
+// FIX: quick one-click conversion of a won lead into a full Customer record, avoids re-typing details
+function convertLeadToCustomer(i) {
+  const l = leads[i];
+  if (!l) return;
+  if (customers.find(c => c.name.toLowerCase() === l.name.toLowerCase())) { showToast('⚠️ A customer with this name already exists', 'error'); return; }
+  if (!confirm(`Convert "${l.name}" into a Customer record?`)) return;
+  customers.push({ name: l.name, phone: l.phone || '', email: l.email || '', type: 'Regular', gstin: '', billingAddr: '', billingPhone: '', shippingAddr: '', shippingPhone: '', sameAddr: false, joined: new Date().toLocaleDateString() });
+  logStatusChange('Lead', l.name, l.company, l.stage, 'Converted');
+  save();
+  loadLeads();
+  showToast(`✅ "${l.name}" converted to Customer!`);
+}
+
+function loadLeads() {
+  const statsEl = document.getElementById('leadStatsGrid');
+  const tb = document.querySelector('#ldtable tbody');
+  if (!statsEl || !tb) return;
+  const total = leads.length;
+  const won = leads.filter(l => l.stage === 'Won').length;
+  const openLeads = leads.filter(l => l.stage !== 'Won' && l.stage !== 'Lost').length;
+  const pipelineValue = leads.filter(l => l.stage !== 'Won' && l.stage !== 'Lost').reduce((a,l) => a + (Number(l.value)||0), 0);
+  statsEl.innerHTML = `
+    <div class="stat-card" style="--c:var(--accent)"><div class="stat-icon">🎯</div><div class="stat-value">${total}</div><div class="stat-label">Total Leads</div></div>
+    <div class="stat-card" style="--c:var(--accent3)"><div class="stat-icon">📞</div><div class="stat-value">${openLeads}</div><div class="stat-label">Open in Pipeline</div></div>
+    <div class="stat-card" style="--c:var(--success)"><div class="stat-icon">🏆</div><div class="stat-value">${won}</div><div class="stat-label">Won</div></div>
+    <div class="stat-card" style="--c:var(--accent2)"><div class="stat-icon">💰</div><div class="stat-value">₹${pipelineValue.toLocaleString('en-IN')}</div><div class="stat-label">Open Pipeline Value</div></div>`;
+  if (!leads.length) {
+    tb.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="e-icon">🎯</div><p>No leads yet</p></div></td></tr>`;
+    return;
+  }
+  const indexed = leads.map((l,i) => ({ ...l, _idx:i }));
+  tb.innerHTML = [...indexed].reverse().map(l => `<tr>
+    <td><strong>${esc(l.name)}</strong></td>
+    <td>${esc(l.company||'—')}</td>
+    <td>${esc(l.phone||'—')}</td>
+    <td>${esc(l.email||'—')}</td>
+    <td>${esc(l.source||'—')}</td>
+    <td>${genericStatusBadge(l.stage||'New')}</td>
+    <td>₹${(Number(l.value)||0).toLocaleString('en-IN')}</td>
+    <td>${esc(l.created||'—')}</td>
+    <td><div class="action-cell">
+      <button class="btn btn-warn btn-sm" onclick="editLead(${l._idx})">Edit</button>
+      ${l.stage === 'Won' ? `<button class="btn btn-outline btn-sm" onclick="convertLeadToCustomer(${l._idx})">→ Customer</button>` : ''}
+      <button class="btn btn-danger btn-sm" onclick="delLead(${l._idx})">Delete</button>
+    </div></td>
   </tr>`).join('');
 }
 
@@ -3432,6 +3755,7 @@ function loadAll() {
   loadAttendance();
   loadLeaves();
   loadPayroll();
+  loadLeads();
   loadCompanyProfile();
   loadDashboard();
   renderCompanySwitcher();
