@@ -266,13 +266,23 @@ tbody tr:last-child td { border-bottom: none; }
           <div class="card-title">Create Quotation</div>
           <div class="form-row">
             <div class="form-group"><label>Customer</label><select id="qcustomer"><option value="">Walk-in Customer</option></select></div>
+            <div class="form-group" style="max-width:150px"><label>Valid Until</label><input id="qValidTill" type="date"></div>
+          </div>
+          <div class="form-row" style="margin-top:12px">
             <div class="form-group"><label>Product</label><select id="qproduct" onchange="updateQuotePrice()"></select></div>
             <div class="form-group" style="max-width:100px"><label>Quantity</label><input id="qqty" type="number" placeholder="1" min="1" oninput="updateQuotePrice()"></div>
-            <div class="form-group" style="max-width:150px"><label>Valid Until</label><input id="qValidTill" type="date"></div>
-            <div class="form-group" style="max-width:140px"><label>Est. Total (with GST)</label><input id="qTotal" readonly placeholder="₹0.00" style="color:var(--accent)"></div>
-            <button class="btn btn-accent" style="margin-top:16px" onclick="makeQuotation()">🧾 Create Quotation</button>
+            <div class="form-group" style="max-width:140px"><label>Line Total (with GST)</label><input id="qTotal" readonly placeholder="₹0.00" style="color:var(--accent)"></div>
+            <button class="btn btn-outline" style="margin-top:16px" onclick="addQuoteCartItem()">+ Add Item</button>
           </div>
-          <p style="font-size:12px;color:var(--muted);margin-top:10px">Quotations don't affect stock. Convert an accepted quotation to a Sales Invoice from the table below.</p>
+          <div class="table-wrap" id="qCartWrap" style="display:none;margin-top:14px">
+            <table><thead><tr><th>Product</th><th>Qty</th><th>Rate</th><th>Amount</th><th></th></tr></thead>
+            <tbody id="qCartBody"></tbody></table>
+          </div>
+          <div class="form-row" style="margin-top:14px;justify-content:flex-end;align-items:center;gap:16px">
+            <div id="qCartTotals" style="font-size:13px;color:var(--muted)"></div>
+            <button class="btn btn-accent" onclick="makeQuotation()">🧾 Create Quotation</button>
+          </div>
+          <p style="font-size:12px;color:var(--muted);margin-top:10px">Quotations don't affect stock. Add multiple products before creating. Convert an accepted quotation to a Sales Invoice from the table below.</p>
         </div>
         <div class="card">
           <div class="card-title">Quotations</div>
@@ -299,13 +309,24 @@ tbody tr:last-child td { border-bottom: none; }
           <div class="card-title">Create Sales Invoice</div>
           <div class="form-row">
             <div class="form-group"><label>Customer</label><select id="scustomer"><option value="">Walk-in Customer</option></select></div>
-            <div class="form-group"><label>Product</label><select id="sproduct" onchange="updateSalePrice()"></select></div>
-            <div class="form-group" style="max-width:100px"><label>Quantity</label><input id="sqty" type="number" placeholder="1" min="1" oninput="updateSalePrice()"></div>
             <div class="form-group" style="max-width:130px"><label>Payment Status</label>
               <select id="sStatus"><option value="Paid">Paid</option><option value="Unpaid">Unpaid</option></select></div>
-            <div class="form-group" style="max-width:140px"><label>Est. Total (with GST)</label><input id="sTotal" readonly placeholder="₹0.00" style="color:var(--accent)"></div>
-            <button class="btn btn-success" style="margin-top:16px" onclick="makeSale()">🛒 Create Invoice</button>
           </div>
+          <div class="form-row" style="margin-top:12px">
+            <div class="form-group"><label>Product</label><select id="sproduct" onchange="updateSalePrice()"></select></div>
+            <div class="form-group" style="max-width:100px"><label>Quantity</label><input id="sqty" type="number" placeholder="1" min="1" oninput="updateSalePrice()"></div>
+            <div class="form-group" style="max-width:140px"><label>Line Total (with GST)</label><input id="sTotal" readonly placeholder="₹0.00" style="color:var(--accent)"></div>
+            <button class="btn btn-outline" style="margin-top:16px" onclick="addSaleCartItem()">+ Add Item</button>
+          </div>
+          <div class="table-wrap" id="sCartWrap" style="display:none;margin-top:14px">
+            <table><thead><tr><th>Product</th><th>Qty</th><th>Rate</th><th>Amount</th><th></th></tr></thead>
+            <tbody id="sCartBody"></tbody></table>
+          </div>
+          <div class="form-row" style="margin-top:14px;justify-content:flex-end;align-items:center;gap:16px">
+            <div id="sCartTotals" style="font-size:13px;color:var(--muted)"></div>
+            <button class="btn btn-success" onclick="makeSale()">🛒 Create Invoice</button>
+          </div>
+          <p style="font-size:12px;color:var(--muted);margin-top:10px">Add one or more products to the cart, then create the invoice.</p>
         </div>
         <div class="card">
           <div class="card-title">Sales Invoices</div>
@@ -333,17 +354,27 @@ tbody tr:last-child td { border-bottom: none; }
           <div class="card-title">Create Purchase Invoice</div>
           <div class="form-row">
             <div class="form-group"><label>Vendor</label><select id="puVendor"><option value="">— Select Vendor —</option></select></div>
+            <div class="form-group" style="max-width:130px"><label>Payment Status</label>
+              <select id="puStatus"><option value="Unpaid">Unpaid</option><option value="Paid">Paid</option></select></div>
+            <div class="form-group" style="max-width:150px"><label>Date</label><input id="puDate" type="date"></div>
+          </div>
+          <div class="form-row" style="margin-top:12px">
             <div class="form-group"><label>Item / Product</label><input id="puItem" list="puItemList" placeholder="Type or pick existing product" oninput="updatePurchaseTotal()">
               <datalist id="puItemList"></datalist></div>
             <div class="form-group" style="max-width:100px"><label>Quantity</label><input id="puQty" type="number" placeholder="1" min="1" oninput="updatePurchaseTotal()"></div>
             <div class="form-group" style="max-width:120px"><label>Rate (₹)</label><input id="puRate" type="number" placeholder="0" min="0" oninput="updatePurchaseTotal()"></div>
-            <div class="form-group" style="max-width:130px"><label>Payment Status</label>
-              <select id="puStatus"><option value="Unpaid">Unpaid</option><option value="Paid">Paid</option></select></div>
-            <div class="form-group" style="max-width:150px"><label>Date</label><input id="puDate" type="date"></div>
-            <div class="form-group" style="max-width:140px"><label>Est. Total (with GST)</label><input id="puTotal" readonly placeholder="₹0.00" style="color:var(--accent)"></div>
-            <button class="btn btn-accent" style="margin-top:16px" onclick="makePurchase()">📥 Create Invoice</button>
+            <div class="form-group" style="max-width:140px"><label>Line Total (with GST)</label><input id="puTotal" readonly placeholder="₹0.00" style="color:var(--accent)"></div>
+            <button class="btn btn-outline" style="margin-top:16px" onclick="addPurchaseCartItem()">+ Add Item</button>
           </div>
-          <p style="font-size:12px;color:var(--muted);margin-top:10px">If the item matches an existing product, stock quantity is increased automatically. New item names create a new product.</p>
+          <div class="table-wrap" id="puCartWrap" style="display:none;margin-top:14px">
+            <table><thead><tr><th>Item</th><th>Qty</th><th>Rate</th><th>Amount</th><th></th></tr></thead>
+            <tbody id="puCartBody"></tbody></table>
+          </div>
+          <div class="form-row" style="margin-top:14px;justify-content:flex-end;align-items:center;gap:16px">
+            <div id="puCartTotals" style="font-size:13px;color:var(--muted)"></div>
+            <button class="btn btn-accent" onclick="makePurchase()">📥 Create Invoice</button>
+          </div>
+          <p style="font-size:12px;color:var(--muted);margin-top:10px">If an item matches an existing product, stock quantity is increased automatically. New item names create a new product. Add multiple items before creating.</p>
         </div>
         <div class="card">
           <div class="card-title">Purchase Invoices</div>
@@ -687,12 +718,11 @@ tbody tr:last-child td { border-bottom: none; }
     <h3>✏️ Edit Sale</h3>
     <input type="hidden" id="esIndex">
     <div class="form-row" style="flex-direction:column;align-items:stretch;gap:14px">
-      <div class="form-group"><label>Product</label><input id="esProduct" readonly style="opacity:0.7"></div>
+      <div class="form-group"><label>Items</label><div id="esItems" style="padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:13px;line-height:1.6"></div></div>
       <div class="form-group"><label>Customer</label><select id="esCustomer"><option value="Walk-in">Walk-in Customer</option></select></div>
-      <div class="form-group"><label>Quantity</label><input id="esQty" type="number" min="1"></div>
       <div class="form-group"><label>Payment Status</label><select id="esStatus"><option value="Paid">Paid</option><option value="Unpaid">Unpaid</option></select></div>
       <div class="form-group"><label>Date</label><input id="esDate" type="date"></div>
-      <p style="font-size:12px;color:var(--muted)">Changing quantity will automatically adjust stock and recalculate GST &amp; totals.</p>
+      <p style="font-size:12px;color:var(--muted)">Product lines are fixed after creation — delete this invoice and create a new one to change products or quantities.</p>
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('editSaleModal')">Cancel</button>
@@ -707,13 +737,12 @@ tbody tr:last-child td { border-bottom: none; }
     <h3>✏️ Edit Quotation</h3>
     <input type="hidden" id="eqIndex">
     <div class="form-row" style="flex-direction:column;align-items:stretch;gap:14px">
-      <div class="form-group"><label>Product</label><input id="eqProduct" readonly style="opacity:0.7"></div>
+      <div class="form-group"><label>Items</label><div id="eqItems" style="padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:13px;line-height:1.6"></div></div>
       <div class="form-group"><label>Customer</label><select id="eqCustomer"><option value="Walk-in">Walk-in Customer</option></select></div>
-      <div class="form-group"><label>Quantity</label><input id="eqQty" type="number" min="1"></div>
       <div class="form-group"><label>Status</label>
         <select id="eqStatus"><option>Draft</option><option>Sent</option><option>Accepted</option><option>Rejected</option><option>Expired</option></select></div>
       <div class="form-group"><label>Valid Until</label><input id="eqValidTill" type="date"></div>
-      <p style="font-size:12px;color:var(--muted)">Changing quantity recalculates the estimated total. Quotations don't affect stock.</p>
+      <p style="font-size:12px;color:var(--muted)">Product lines are fixed after creation. Quotations don't affect stock.</p>
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('editQuotationModal')">Cancel</button>
@@ -729,16 +758,12 @@ tbody tr:last-child td { border-bottom: none; }
     <input type="hidden" id="epuIndex">
     <div class="form-row" style="flex-direction:column;align-items:stretch;gap:14px">
       <div class="form-group"><label>Vendor</label><select id="epuVendor"></select></div>
-      <div class="form-group"><label>Item</label><input id="epuItem" readonly style="opacity:0.7"></div>
-      <div class="form-row">
-        <div class="form-group"><label>Quantity</label><input id="epuQty" type="number" min="1"></div>
-        <div class="form-group"><label>Rate (₹)</label><input id="epuRate" type="number" min="0"></div>
-      </div>
+      <div class="form-group"><label>Items</label><div id="epuItems" style="padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:13px;line-height:1.6"></div></div>
       <div class="form-row">
         <div class="form-group"><label>Payment Status</label><select id="epuStatus"><option value="Unpaid">Unpaid</option><option value="Paid">Paid</option></select></div>
         <div class="form-group"><label>Date</label><input id="epuDate" type="date"></div>
       </div>
-      <p style="font-size:12px;color:var(--muted)">Changing quantity will adjust linked product stock and recalculate GST &amp; totals.</p>
+      <p style="font-size:12px;color:var(--muted)">Item lines are fixed after creation — delete this invoice and create a new one to change items or quantities.</p>
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('editPurchaseModal')">Cancel</button>
@@ -1251,9 +1276,12 @@ function saveProductEdit() {
   const oldName = products[i].name;
   products[i] = { ...products[i], name, cat, qty, price, low };
 
-  // FIX: keep sales history in sync if the product name changed
+  // FIX: keep sales history in sync if the product name changed (top-level field + line items)
   if (oldName !== name) {
-    sales.forEach(s => { if (s.name === oldName) s.name = name; });
+    sales.forEach(s => {
+      if (s.name === oldName) s.name = name;
+      if (s.items) s.items.forEach(it => { if (it.name === oldName) it.name = name; });
+    });
   }
 
   closeModal('editProductModal');
@@ -1451,7 +1479,25 @@ function loadVendors() {
     vendors.map(v => `<option value="${esc(v.name)}">${esc(v.name)}</option>`).join('');
 }
 
+// ===== ITEM HELPERS (multi-product invoice support, with backward compat for old single-item records) =====
+function itemsOf(record, type) {
+  if (record && record.items && record.items.length) return record.items;
+  if (!record) return [];
+  if (type === 'purchase') return [{ item: record.item, qty: record.qty, rate: record.rate, subtotal: record.subtotal }];
+  return [{ name: record.name, qty: record.qty, price: record.qty ? +(record.subtotal/record.qty).toFixed(2) : 0, subtotal: record.subtotal }];
+}
+function itemsSummaryHTML(record, type) {
+  const items = itemsOf(record, type);
+  if (!items.length) return '—';
+  const key = type === 'purchase' ? 'item' : 'name';
+  const first = esc(items[0][key] || '—');
+  return items.length > 1 ? `${first} <span class="badge badge-purple">+${items.length-1} more</span>` : first;
+}
+function itemsQty(items) { return items.reduce((a,b) => a + (Number(b.qty)||0), 0); }
+
 // ===== SALES =====
+let saleCart = [];
+
 function updateSalePrice() {
   const name = document.getElementById('sproduct').value;
   const qty  = Number(document.getElementById('sqty').value) || 0;
@@ -1461,26 +1507,65 @@ function updateSalePrice() {
   document.getElementById('sTotal').value = `₹${grand.toLocaleString('en-IN',{minimumFractionDigits:2})}`;
 }
 
-function makeSale() {
-  const name     = document.getElementById('sproduct').value;
-  const customer = document.getElementById('scustomer').value;
-  const qty      = Number(document.getElementById('sqty').value);
-  const status   = document.getElementById('sStatus').value || 'Paid';
-  if (!name) { showToast('⚠️ Select a product', 'error'); return; }
+function addSaleCartItem() {
+  const name = document.getElementById('sproduct').value;
+  const qty  = Number(document.getElementById('sqty').value);
+  if (!name || name === 'No products') { showToast('⚠️ Select a product', 'error'); return; }
   if (!qty || qty <= 0) { showToast('⚠️ Enter valid quantity', 'error'); return; }
   const p = products.find(x => x.name === name);
   if (!p) { showToast('⚠️ Product not found', 'error'); return; }
-  if (p.qty < qty) { showToast(`⚠️ Only ${p.qty} in stock!`, 'error'); return; }
-  p.qty -= qty;
-  const subtotal = qty * p.price;
-  const gst      = +(subtotal * 0.18).toFixed(2);
-  const grand    = +(subtotal + gst).toFixed(2);
-  const date     = new Date().toLocaleString();
-  const invNo    = nextInvoiceNo('sale');
-  const sale = { invNo, name, customer: customer||'Walk-in', qty, subtotal, gst, grand, status, date };
-  sales.push(sale);
+  const alreadyInCart = saleCart.filter(c => c.name === name).reduce((a,b) => a+b.qty, 0);
+  if (p.qty < alreadyInCart + qty) { showToast(`⚠️ Only ${p.qty} in stock!`, 'error'); return; }
+  const existing = saleCart.find(c => c.name === name);
+  if (existing) existing.qty += qty; else saleCart.push({ name, qty, price: p.price });
   document.getElementById('sqty').value = '';
   document.getElementById('sTotal').value = '';
+  renderSaleCart();
+}
+
+function removeSaleCartItem(i) { saleCart.splice(i, 1); renderSaleCart(); }
+
+function renderSaleCart() {
+  const wrap = document.getElementById('sCartWrap');
+  const body = document.getElementById('sCartBody');
+  const totalsEl = document.getElementById('sCartTotals');
+  if (!saleCart.length) { wrap.style.display = 'none'; totalsEl.innerHTML = ''; return; }
+  wrap.style.display = 'block';
+  body.innerHTML = saleCart.map((c,i) => `<tr>
+    <td>${esc(c.name)}</td><td>${c.qty}</td><td>₹${c.price.toLocaleString('en-IN')}</td>
+    <td>₹${(c.qty*c.price).toLocaleString('en-IN',{minimumFractionDigits:2})}</td>
+    <td><button class="btn btn-danger btn-sm" onclick="removeSaleCartItem(${i})">✕</button></td>
+  </tr>`).join('');
+  const subtotal = saleCart.reduce((a,b) => a+b.qty*b.price, 0);
+  const gst = +(subtotal*0.18).toFixed(2);
+  const grand = +(subtotal+gst).toFixed(2);
+  totalsEl.innerHTML = `Subtotal: ₹${subtotal.toLocaleString('en-IN',{minimumFractionDigits:2})} &nbsp;|&nbsp; GST (18%): ₹${gst.toLocaleString('en-IN',{minimumFractionDigits:2})} &nbsp;|&nbsp; <strong style="color:var(--accent)">Grand Total: ₹${grand.toLocaleString('en-IN',{minimumFractionDigits:2})}</strong>`;
+}
+
+function makeSale() {
+  const customer = document.getElementById('scustomer').value;
+  const status   = document.getElementById('sStatus').value || 'Paid';
+  if (!saleCart.length) { showToast('⚠️ Add at least one product to the invoice', 'error'); return; }
+  for (const c of saleCart) {
+    const p = products.find(x => x.name === c.name);
+    if (!p) { showToast(`⚠️ Product "${c.name}" not found`, 'error'); return; }
+    if (p.qty < c.qty) { showToast(`⚠️ Only ${p.qty} in stock for ${c.name}!`, 'error'); return; }
+  }
+  const items = saleCart.map(c => {
+    const p = products.find(x => x.name === c.name);
+    p.qty -= c.qty;
+    return { name: c.name, qty: c.qty, price: c.price, subtotal: +(c.qty*c.price).toFixed(2) };
+  });
+  const subtotal = +items.reduce((a,b) => a+b.subtotal, 0).toFixed(2);
+  const gst      = +(subtotal * 0.18).toFixed(2);
+  const grand    = +(subtotal + gst).toFixed(2);
+  const qty      = itemsQty(items);
+  const date     = new Date().toLocaleString();
+  const invNo    = nextInvoiceNo('sale');
+  const sale = { invNo, items, name: items[0].name, customer: customer||'Walk-in', qty, subtotal, gst, grand, status, date };
+  sales.push(sale);
+  saleCart = [];
+  renderSaleCart();
   save();
   showToast(`✅ Invoice ${invNo} created!`);
   showInvoice(sale, 'sale');
@@ -1489,21 +1574,23 @@ function makeSale() {
 function delSale(i) {
   if (!confirm('Delete this sale? Stock will be restored to inventory.')) return;
   const s = sales[i];
-  // FIX: restore stock to matching product when a sale is deleted
-  const p = products.find(x => x.name === s.name);
-  if (p) p.qty += Number(s.qty) || 0;
+  // FIX: restore stock to every product line when a sale is deleted
+  itemsOf(s,'sale').forEach(it => {
+    const p = products.find(x => x.name === it.name);
+    if (p) p.qty += Number(it.qty) || 0;
+  });
   sales.splice(i, 1);
   save();
   showToast('🗑️ Sale deleted & stock restored', 'error');
 }
 
-// ===== EDIT SALE =====
+// ===== EDIT SALE (product lines are fixed after creation; delete & recreate to change items) =====
 function editSale(i) {
   const s = sales[i];
   if (!s) return;
   document.getElementById('esIndex').value = i;
-  document.getElementById('esProduct').value = s.name;
-  document.getElementById('esQty').value = s.qty;
+  const items = itemsOf(s,'sale');
+  document.getElementById('esItems').innerHTML = items.map(it => `${esc(it.name)} × ${it.qty}`).join('<br>');
   document.getElementById('esStatus').value = s.status || 'Paid';
   // parse existing date into yyyy-mm-dd for the date input where possible
   let d = new Date(s.date);
@@ -1517,39 +1604,19 @@ function editSale(i) {
 
 function saveSaleEdit() {
   const i        = Number(document.getElementById('esIndex').value);
-  const newQty   = Number(document.getElementById('esQty').value);
   const customer = document.getElementById('esCustomer').value;
   const dateVal  = document.getElementById('esDate').value;
   const status   = document.getElementById('esStatus').value || 'Paid';
-  if (!newQty || newQty <= 0) { showToast('⚠️ Enter valid quantity', 'error'); return; }
-
   const s = sales[i];
-  const p = products.find(x => x.name === s.name);
-  if (!p) { showToast('⚠️ Linked product no longer exists', 'error'); return; }
-
-  // FIX: return old qty to stock, then check new qty is available before applying
-  const availableAfterRestore = p.qty + Number(s.qty);
-  if (newQty > availableAfterRestore) {
-    showToast(`⚠️ Only ${availableAfterRestore} in stock for this edit`, 'error');
-    return;
-  }
-  p.qty = availableAfterRestore - newQty;
-
-  const subtotal = newQty * p.price;
-  const gst      = +(subtotal * 0.18).toFixed(2);
-  const grand    = +(subtotal + gst).toFixed(2);
-
   sales[i] = {
     ...s,
-    qty: newQty,
     customer: customer || 'Walk-in',
-    subtotal, gst, grand, status,
+    status,
     date: dateVal ? new Date(dateVal).toLocaleString() : s.date
   };
-
   closeModal('editSaleModal');
   save();
-  showToast('✅ Sale updated & stock adjusted!');
+  showToast('✅ Sale updated!');
 }
 
 function loadSales() {
@@ -1562,9 +1629,9 @@ function loadSales() {
   const indexed = sales.map((s,i) => ({ ...s, _idx: i }));
   tb.innerHTML = [...indexed].reverse().map(s => `<tr>
     <td><span class="badge badge-blue">${esc(s.invNo||'—')}</span></td>
-    <td><strong>${esc(s.name)}</strong></td>
+    <td><strong>${itemsSummaryHTML(s,'sale')}</strong></td>
     <td>${esc(s.customer||'Walk-in')}</td>
-    <td>${s.qty}</td>
+    <td>${itemsQty(itemsOf(s,'sale'))}</td>
     <td>₹${(s.subtotal||0).toLocaleString('en-IN')}</td>
     <td>₹${(s.gst||0).toLocaleString('en-IN')}</td>
     <td><strong>₹${(s.grand||0).toLocaleString('en-IN')}</strong></td>
@@ -1579,6 +1646,8 @@ function loadSales() {
 }
 
 // ===== QUOTATIONS =====
+let quoteCart = [];
+
 function updateQuotePrice() {
   const name = document.getElementById('qproduct').value;
   const qty  = Number(document.getElementById('qqty').value) || 0;
@@ -1588,25 +1657,55 @@ function updateQuotePrice() {
   document.getElementById('qTotal').value = `₹${grand.toLocaleString('en-IN',{minimumFractionDigits:2})}`;
 }
 
-function makeQuotation() {
-  const name     = document.getElementById('qproduct').value;
-  const customer = document.getElementById('qcustomer').value;
-  const qty      = Number(document.getElementById('qqty').value);
-  const validTill= document.getElementById('qValidTill').value;
+function addQuoteCartItem() {
+  const name = document.getElementById('qproduct').value;
+  const qty  = Number(document.getElementById('qqty').value);
   if (!name || name === 'No products') { showToast('⚠️ Select a product', 'error'); return; }
   if (!qty || qty <= 0) { showToast('⚠️ Enter valid quantity', 'error'); return; }
   const p = products.find(x => x.name === name);
   if (!p) { showToast('⚠️ Product not found', 'error'); return; }
-  // Quotations are estimates only — they do NOT touch stock
-  const subtotal = qty * p.price;
-  const gst      = +(subtotal * 0.18).toFixed(2);
-  const grand    = +(subtotal + gst).toFixed(2);
-  const date     = new Date().toLocaleString();
-  const quoteNo  = nextInvoiceNo('quote');
-  const quote = { quoteNo, name, customer: customer||'Walk-in', qty, subtotal, gst, grand, status:'Draft', validTill, date };
-  quotations.push(quote);
+  const existing = quoteCart.find(c => c.name === name);
+  if (existing) existing.qty += qty; else quoteCart.push({ name, qty, price: p.price });
   document.getElementById('qqty').value = '';
   document.getElementById('qTotal').value = '';
+  renderQuoteCart();
+}
+
+function removeQuoteCartItem(i) { quoteCart.splice(i, 1); renderQuoteCart(); }
+
+function renderQuoteCart() {
+  const wrap = document.getElementById('qCartWrap');
+  const body = document.getElementById('qCartBody');
+  const totalsEl = document.getElementById('qCartTotals');
+  if (!quoteCart.length) { wrap.style.display = 'none'; totalsEl.innerHTML = ''; return; }
+  wrap.style.display = 'block';
+  body.innerHTML = quoteCart.map((c,i) => `<tr>
+    <td>${esc(c.name)}</td><td>${c.qty}</td><td>₹${c.price.toLocaleString('en-IN')}</td>
+    <td>₹${(c.qty*c.price).toLocaleString('en-IN',{minimumFractionDigits:2})}</td>
+    <td><button class="btn btn-danger btn-sm" onclick="removeQuoteCartItem(${i})">✕</button></td>
+  </tr>`).join('');
+  const subtotal = quoteCart.reduce((a,b) => a+b.qty*b.price, 0);
+  const gst = +(subtotal*0.18).toFixed(2);
+  const grand = +(subtotal+gst).toFixed(2);
+  totalsEl.innerHTML = `Subtotal: ₹${subtotal.toLocaleString('en-IN',{minimumFractionDigits:2})} &nbsp;|&nbsp; GST (18%): ₹${gst.toLocaleString('en-IN',{minimumFractionDigits:2})} &nbsp;|&nbsp; <strong style="color:var(--accent)">Grand Total: ₹${grand.toLocaleString('en-IN',{minimumFractionDigits:2})}</strong>`;
+}
+
+function makeQuotation() {
+  const customer = document.getElementById('qcustomer').value;
+  const validTill= document.getElementById('qValidTill').value;
+  if (!quoteCart.length) { showToast('⚠️ Add at least one product to the quotation', 'error'); return; }
+  // Quotations are estimates only — they do NOT touch stock
+  const items = quoteCart.map(c => ({ name: c.name, qty: c.qty, price: c.price, subtotal: +(c.qty*c.price).toFixed(2) }));
+  const subtotal = +items.reduce((a,b) => a+b.subtotal, 0).toFixed(2);
+  const gst      = +(subtotal * 0.18).toFixed(2);
+  const grand    = +(subtotal + gst).toFixed(2);
+  const qty      = itemsQty(items);
+  const date     = new Date().toLocaleString();
+  const quoteNo  = nextInvoiceNo('quote');
+  const quote = { quoteNo, items, name: items[0].name, customer: customer||'Walk-in', qty, subtotal, gst, grand, status:'Draft', validTill, date };
+  quotations.push(quote);
+  quoteCart = [];
+  renderQuoteCart();
   save();
   showToast(`✅ Quotation ${quoteNo} created!`);
   showInvoice(quote, 'quote');
@@ -1623,8 +1722,8 @@ function editQuotation(i) {
   const q = quotations[i];
   if (!q) return;
   document.getElementById('eqIndex').value = i;
-  document.getElementById('eqProduct').value = q.name;
-  document.getElementById('eqQty').value = q.qty;
+  const items = itemsOf(q,'quote');
+  document.getElementById('eqItems').innerHTML = items.map(it => `${esc(it.name)} × ${it.qty}`).join('<br>');
   document.getElementById('eqStatus').value = q.status || 'Draft';
   document.getElementById('eqValidTill').value = q.validTill || '';
   const sel = document.getElementById('eqCustomer');
@@ -1636,42 +1735,39 @@ function editQuotation(i) {
 
 function saveQuotationEdit() {
   const i        = Number(document.getElementById('eqIndex').value);
-  const newQty   = Number(document.getElementById('eqQty').value);
   const customer = document.getElementById('eqCustomer').value;
   const status   = document.getElementById('eqStatus').value || 'Draft';
   const validTill= document.getElementById('eqValidTill').value;
-  if (!newQty || newQty <= 0) { showToast('⚠️ Enter valid quantity', 'error'); return; }
-
   const q = quotations[i];
-  const p = products.find(x => x.name === q.name);
-  const price = p ? p.price : (q.subtotal / (q.qty || 1));
-  const subtotal = +(newQty * price).toFixed(2);
-  const gst      = +(subtotal * 0.18).toFixed(2);
-  const grand    = +(subtotal + gst).toFixed(2);
-
-  quotations[i] = { ...q, qty: newQty, customer: customer || 'Walk-in', status, validTill, subtotal, gst, grand };
-
+  quotations[i] = { ...q, customer: customer || 'Walk-in', status, validTill };
   closeModal('editQuotationModal');
   save();
   showToast('✅ Quotation updated!');
 }
 
-// FIX: convert an accepted quotation into a real sales invoice, deduct stock, and link the two records
+// FIX: convert an accepted quotation into a real sales invoice, deduct stock for every line item, and link the two records
 function convertQuoteToSale(i) {
   const q = quotations[i];
   if (!q) return;
   if (q.convertedInvNo) { showToast(`⚠️ Already converted to ${q.convertedInvNo}`, 'error'); return; }
-  const p = products.find(x => x.name === q.name);
-  if (!p) { showToast('⚠️ Linked product no longer exists', 'error'); return; }
-  if (p.qty < q.qty) { showToast(`⚠️ Only ${p.qty} in stock!`, 'error'); return; }
+  const items = itemsOf(q,'quote');
+  for (const it of items) {
+    const p = products.find(x => x.name === it.name);
+    if (!p) { showToast(`⚠️ Product "${it.name}" no longer exists`, 'error'); return; }
+    if (p.qty < it.qty) { showToast(`⚠️ Only ${p.qty} in stock for ${it.name}!`, 'error'); return; }
+  }
   if (!confirm(`Convert quotation ${q.quoteNo} into a Sales Invoice?`)) return;
 
-  p.qty -= q.qty;
-  const subtotal = q.qty * p.price;
+  const saleItems = items.map(it => {
+    const p = products.find(x => x.name === it.name);
+    p.qty -= it.qty;
+    return { name: it.name, qty: it.qty, price: it.price, subtotal: it.subtotal };
+  });
+  const subtotal = +saleItems.reduce((a,b) => a+b.subtotal, 0).toFixed(2);
   const gst      = +(subtotal * 0.18).toFixed(2);
   const grand    = +(subtotal + gst).toFixed(2);
   const invNo    = nextInvoiceNo('sale');
-  const sale = { invNo, name: q.name, customer: q.customer||'Walk-in', qty: q.qty, subtotal, gst, grand, status:'Unpaid', date: new Date().toLocaleString() };
+  const sale = { invNo, items: saleItems, name: saleItems[0].name, customer: q.customer||'Walk-in', qty: itemsQty(saleItems), subtotal, gst, grand, status:'Unpaid', date: new Date().toLocaleString() };
   sales.push(sale);
 
   quotations[i] = { ...q, status: 'Accepted', convertedInvNo: invNo };
@@ -1689,9 +1785,9 @@ function loadQuotations() {
   const indexed = quotations.map((q,i) => ({ ...q, _idx: i }));
   tb.innerHTML = [...indexed].reverse().map(q => `<tr>
     <td><span class="badge badge-blue">${esc(q.quoteNo||'—')}</span></td>
-    <td><strong>${esc(q.name)}</strong></td>
+    <td><strong>${itemsSummaryHTML(q,'quote')}</strong></td>
     <td>${esc(q.customer||'Walk-in')}</td>
-    <td>${q.qty}</td>
+    <td>${itemsQty(itemsOf(q,'quote'))}</td>
     <td><strong>₹${(q.grand||0).toLocaleString('en-IN')}</strong></td>
     <td>${quoteStatusBadge(q.status)}</td>
     <td>${q.validTill||'—'}</td>
@@ -1712,10 +1808,23 @@ let currentInvoiceType = 'sale';
 function invoiceHTML(record, type) {
   const isSale    = type === 'sale';
   const isQuote   = type === 'quote';
+  const isPurchase= type === 'purchase';
   const partyLbl  = isQuote ? 'Quotation For (Customer)' : isSale ? 'Bill To (Customer)' : 'Vendor (Bill From)';
   const party     = isQuote ? record.customer : isSale ? record.customer : record.vendor;
-  const itemName  = isQuote ? record.name : isSale ? record.name : record.item;
-  const rate      = isQuote ? (record.subtotal/record.qty) : isSale ? (record.subtotal/record.qty) : record.rate;
+  const items     = itemsOf(record, type);
+  const itemRows  = items.map((it,idx) => {
+    const nm   = isPurchase ? it.item : it.name;
+    const rate = isPurchase ? Number(it.rate)||0 : Number(it.price)||0;
+    const amt  = Number(it.subtotal)||0;
+    return `<tr>
+          <td style="padding:8px;border:1px solid #cbd5e1">${idx+1}</td>
+          <td style="padding:8px;border:1px solid #cbd5e1">${esc(nm)}</td>
+          <td style="padding:8px;border:1px solid #cbd5e1;text-align:center">—</td>
+          <td style="padding:8px;border:1px solid #cbd5e1;text-align:right">${it.qty}</td>
+          <td style="padding:8px;border:1px solid #cbd5e1;text-align:right">₹${rate.toLocaleString('en-IN',{minimumFractionDigits:2})}</td>
+          <td style="padding:8px;border:1px solid #cbd5e1;text-align:right">₹${amt.toLocaleString('en-IN',{minimumFractionDigits:2})}</td>
+        </tr>`;
+  }).join('');
   const cgst      = +(record.gst/2).toFixed(2);
   const sgst      = +(record.gst/2).toFixed(2);
   const c = companyProfile;
@@ -1773,14 +1882,7 @@ function invoiceHTML(record, type) {
         </tr>
       </thead>
       <tbody>
-        <tr>
-          <td style="padding:8px;border:1px solid #cbd5e1">1</td>
-          <td style="padding:8px;border:1px solid #cbd5e1">${esc(itemName)}</td>
-          <td style="padding:8px;border:1px solid #cbd5e1;text-align:center">—</td>
-          <td style="padding:8px;border:1px solid #cbd5e1;text-align:right">${record.qty}</td>
-          <td style="padding:8px;border:1px solid #cbd5e1;text-align:right">₹${rate.toLocaleString('en-IN',{minimumFractionDigits:2})}</td>
-          <td style="padding:8px;border:1px solid #cbd5e1;text-align:right">₹${record.subtotal.toLocaleString('en-IN',{minimumFractionDigits:2})}</td>
-        </tr>
+        ${itemRows}
       </tbody>
     </table>
 
@@ -1851,32 +1953,67 @@ function updatePurchaseTotal() {
   document.getElementById('puTotal').value = `₹${grand.toLocaleString('en-IN',{minimumFractionDigits:2})}`;
 }
 
-function makePurchase() {
-  const vendor = document.getElementById('puVendor').value;
-  const item   = document.getElementById('puItem').value.trim();
-  const qty    = Number(document.getElementById('puQty').value);
-  const rate   = Number(document.getElementById('puRate').value);
-  const status = document.getElementById('puStatus').value || 'Unpaid';
-  const dateVal= document.getElementById('puDate').value;
-  if (!vendor) { showToast('⚠️ Select a vendor', 'error'); return; }
+// ===== PURCHASE CART =====
+let purchaseCart = [];
+
+function addPurchaseCartItem() {
+  const item = document.getElementById('puItem').value.trim();
+  const qty  = Number(document.getElementById('puQty').value);
+  const rate = Number(document.getElementById('puRate').value);
   if (!item) { showToast('⚠️ Enter an item/product', 'error'); return; }
   if (!qty || qty <= 0) { showToast('⚠️ Enter valid quantity', 'error'); return; }
   if (!rate || rate <= 0) { showToast('⚠️ Enter valid rate', 'error'); return; }
+  const existing = purchaseCart.find(c => c.item.toLowerCase() === item.toLowerCase());
+  if (existing) { existing.qty += qty; existing.rate = rate; } else { purchaseCart.push({ item, qty, rate }); }
+  ['puItem','puQty','puRate','puTotal'].forEach(id => document.getElementById(id).value='');
+  renderPurchaseCart();
+}
 
-  // link to existing product (case-insensitive) or create a new one
-  let p = products.find(x => x.name.toLowerCase() === item.toLowerCase());
-  if (p) { p.qty = (Number(p.qty)||0) + qty; p.price = rate; }
-  else { products.push({ name: item, cat: 'Other', qty, price: rate, low: 5, added: new Date().toLocaleDateString() }); }
+function removePurchaseCartItem(i) { purchaseCart.splice(i, 1); renderPurchaseCart(); }
 
-  const subtotal = qty * rate;
+function renderPurchaseCart() {
+  const wrap = document.getElementById('puCartWrap');
+  const body = document.getElementById('puCartBody');
+  const totalsEl = document.getElementById('puCartTotals');
+  if (!purchaseCart.length) { wrap.style.display = 'none'; totalsEl.innerHTML = ''; return; }
+  wrap.style.display = 'block';
+  body.innerHTML = purchaseCart.map((c,i) => `<tr>
+    <td>${esc(c.item)}</td><td>${c.qty}</td><td>₹${c.rate.toLocaleString('en-IN')}</td>
+    <td>₹${(c.qty*c.rate).toLocaleString('en-IN',{minimumFractionDigits:2})}</td>
+    <td><button class="btn btn-danger btn-sm" onclick="removePurchaseCartItem(${i})">✕</button></td>
+  </tr>`).join('');
+  const subtotal = purchaseCart.reduce((a,b) => a+b.qty*b.rate, 0);
+  const gst = +(subtotal*0.18).toFixed(2);
+  const grand = +(subtotal+gst).toFixed(2);
+  totalsEl.innerHTML = `Subtotal: ₹${subtotal.toLocaleString('en-IN',{minimumFractionDigits:2})} &nbsp;|&nbsp; GST (18%): ₹${gst.toLocaleString('en-IN',{minimumFractionDigits:2})} &nbsp;|&nbsp; <strong style="color:var(--accent)">Grand Total: ₹${grand.toLocaleString('en-IN',{minimumFractionDigits:2})}</strong>`;
+}
+
+function makePurchase() {
+  const vendor = document.getElementById('puVendor').value;
+  const status = document.getElementById('puStatus').value || 'Unpaid';
+  const dateVal= document.getElementById('puDate').value;
+  if (!vendor) { showToast('⚠️ Select a vendor', 'error'); return; }
+  if (!purchaseCart.length) { showToast('⚠️ Add at least one item to the invoice', 'error'); return; }
+
+  // link each item to an existing product (case-insensitive) or create a new one
+  const items = purchaseCart.map(c => {
+    let p = products.find(x => x.name.toLowerCase() === c.item.toLowerCase());
+    if (p) { p.qty = (Number(p.qty)||0) + c.qty; p.price = c.rate; }
+    else { products.push({ name: c.item, cat: 'Other', qty: c.qty, price: c.rate, low: 5, added: new Date().toLocaleDateString() }); }
+    return { item: c.item, qty: c.qty, rate: c.rate, subtotal: +(c.qty*c.rate).toFixed(2) };
+  });
+
+  const subtotal = +items.reduce((a,b) => a+b.subtotal, 0).toFixed(2);
   const gst      = +(subtotal * 0.18).toFixed(2);
   const grand    = +(subtotal + gst).toFixed(2);
+  const qty      = itemsQty(items);
   const date     = dateVal ? new Date(dateVal).toLocaleString() : new Date().toLocaleString();
   const invNo    = nextInvoiceNo('purchase');
-  const purchase = { invNo, vendor, item, qty, rate, subtotal, gst, grand, status, date };
+  const purchase = { invNo, vendor, items, item: items[0].item, rate: items[0].rate, qty, subtotal, gst, grand, status, date };
   purchases.push(purchase);
 
-  ['puItem','puQty','puRate','puTotal'].forEach(id => document.getElementById(id).value='');
+  purchaseCart = [];
+  renderPurchaseCart();
   save();
   showToast(`✅ Purchase Invoice ${invNo} created!`);
   showInvoice(purchase, 'purchase');
@@ -1885,13 +2022,16 @@ function makePurchase() {
 function delPurchase(i) {
   if (!confirm('Delete this purchase invoice? Linked stock will be reduced back.')) return;
   const pu = purchases[i];
-  const p = products.find(x => x.name.toLowerCase() === pu.item.toLowerCase());
-  if (p) p.qty = Math.max(0, (Number(p.qty)||0) - Number(pu.qty||0));
+  itemsOf(pu,'purchase').forEach(it => {
+    const p = products.find(x => x.name.toLowerCase() === (it.item||'').toLowerCase());
+    if (p) p.qty = Math.max(0, (Number(p.qty)||0) - Number(it.qty||0));
+  });
   purchases.splice(i, 1);
   save();
   showToast('🗑️ Purchase invoice deleted & stock adjusted', 'error');
 }
 
+// ===== EDIT PURCHASE (item lines are fixed after creation; delete & recreate to change items) =====
 function editPurchase(i) {
   const pu = purchases[i];
   if (!pu) return;
@@ -1899,9 +2039,8 @@ function editPurchase(i) {
   const sel = document.getElementById('epuVendor');
   sel.innerHTML = vendors.map(v => `<option value="${esc(v.name)}">${esc(v.name)}</option>`).join('');
   sel.value = pu.vendor;
-  document.getElementById('epuItem').value = pu.item;
-  document.getElementById('epuQty').value = pu.qty;
-  document.getElementById('epuRate').value = pu.rate;
+  const items = itemsOf(pu,'purchase');
+  document.getElementById('epuItems').innerHTML = items.map(it => `${esc(it.item)} × ${it.qty} @ ₹${Number(it.rate||0).toLocaleString('en-IN')}`).join('<br>');
   document.getElementById('epuStatus').value = pu.status || 'Unpaid';
   let d = new Date(pu.date);
   document.getElementById('epuDate').value = isNaN(d) ? '' : d.toISOString().split('T')[0];
@@ -1911,36 +2050,18 @@ function editPurchase(i) {
 function savePurchaseEdit() {
   const i       = Number(document.getElementById('epuIndex').value);
   const vendor  = document.getElementById('epuVendor').value;
-  const newQty  = Number(document.getElementById('epuQty').value);
-  const newRate = Number(document.getElementById('epuRate').value);
   const status  = document.getElementById('epuStatus').value || 'Unpaid';
   const dateVal = document.getElementById('epuDate').value;
-  if (!newQty || newQty <= 0) { showToast('⚠️ Enter valid quantity', 'error'); return; }
-  if (!newRate || newRate <= 0) { showToast('⚠️ Enter valid rate', 'error'); return; }
-
   const pu = purchases[i];
-  const p = products.find(x => x.name.toLowerCase() === pu.item.toLowerCase());
-  if (p) {
-    // remove old qty contribution, then add new qty
-    p.qty = Math.max(0, (Number(p.qty)||0) - Number(pu.qty||0)) + newQty;
-    p.price = newRate;
-  }
-
-  const subtotal = newQty * newRate;
-  const gst      = +(subtotal * 0.18).toFixed(2);
-  const grand    = +(subtotal + gst).toFixed(2);
-
   purchases[i] = {
     ...pu,
     vendor: vendor || pu.vendor,
-    qty: newQty, rate: newRate,
-    subtotal, gst, grand, status,
+    status,
     date: dateVal ? new Date(dateVal).toLocaleString() : pu.date
   };
-
   closeModal('editPurchaseModal');
   save();
-  showToast('✅ Purchase invoice updated & stock adjusted!');
+  showToast('✅ Purchase invoice updated!');
 }
 
 function loadPurchases() {
@@ -1951,12 +2072,14 @@ function loadPurchases() {
     return;
   }
   const indexed = purchases.map((pu,i) => ({ ...pu, _idx: i }));
-  tb.innerHTML = [...indexed].reverse().map(pu => `<tr>
+  tb.innerHTML = [...indexed].reverse().map(pu => {
+    const items = itemsOf(pu,'purchase');
+    return `<tr>
     <td><span class="badge badge-purple">${esc(pu.invNo||'—')}</span></td>
     <td>${esc(pu.vendor)}</td>
-    <td><strong>${esc(pu.item)}</strong></td>
-    <td>${pu.qty}</td>
-    <td>₹${(pu.rate||0).toLocaleString('en-IN')}</td>
+    <td><strong>${itemsSummaryHTML(pu,'purchase')}</strong></td>
+    <td>${itemsQty(items)}</td>
+    <td>${items.length>1 ? '—' : `₹${Number(items[0].rate||0).toLocaleString('en-IN')}`}</td>
     <td>₹${(pu.subtotal||0).toLocaleString('en-IN')}</td>
     <td>₹${(pu.gst||0).toLocaleString('en-IN')}</td>
     <td><strong>₹${(pu.grand||0).toLocaleString('en-IN')}</strong></td>
@@ -1967,7 +2090,8 @@ function loadPurchases() {
       <button class="btn btn-warn btn-sm" onclick="editPurchase(${pu._idx})">Edit</button>
       <button class="btn btn-danger btn-sm" onclick="delPurchase(${pu._idx})">Delete</button>
     </div></td>
-  </tr>`).join('');
+  </tr>`;
+  }).join('');
 }
 
 // ===== EXPENSES =====
@@ -2178,11 +2302,14 @@ function loadDashboard() {
   if (!recent.length) {
     rsEl.innerHTML = `<div class="empty-state"><div class="e-icon">🛒</div><p>No sales yet</p></div>`;
   } else {
-    rsEl.innerHTML = recent.map(s => `
+    rsEl.innerHTML = recent.map(s => {
+      const items = itemsOf(s,'sale');
+      return `
       <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
-        <div><strong>${esc(s.name)}</strong> × ${s.qty}<div style="font-size:12px;color:var(--muted)">${esc(s.customer)}</div></div>
+        <div><strong>${itemsSummaryHTML(s,'sale')}</strong> × ${itemsQty(items)}<div style="font-size:12px;color:var(--muted)">${esc(s.customer)}</div></div>
         <strong style="color:var(--success)">₹${(s.grand||0).toLocaleString('en-IN')}</strong>
-      </div>`).join('');
+      </div>`;
+    }).join('');
   }
   renderDashboardCharts();
 }
@@ -2255,7 +2382,11 @@ function renderReportCharts() {
   }
 
   const prodSales = {};
-  sales.forEach(s => { prodSales[s.name] = (prodSales[s.name]||0) + (s.grand||0); });
+  sales.forEach(s => {
+    itemsOf(s,'sale').forEach(it => {
+      prodSales[it.name] = (prodSales[it.name]||0) + (Number(it.subtotal)||0) * 1.18;
+    });
+  });
   destroyChart('productSalesChart');
   const psc = document.getElementById('productSalesChart');
   if (psc) {
@@ -2341,7 +2472,11 @@ function exportSalesPDF() {
     <div class="letterhead"><img src="${getActiveLogo()}" style="height:44px"><div><strong style="font-size:15px">${esc(companyProfile.name)}</strong><br><span style="font-size:11px;color:#64748b">${esc(companyProfile.tagline1)}</span></div></div>
     <h1>📊 Sales Report</h1><p>Generated: ${new Date().toLocaleString()}</p>
     <table><thead><tr><th>Invoice #</th><th>Product</th><th>Customer</th><th>Qty</th><th>Subtotal</th><th>GST</th><th>Grand Total</th><th>Status</th><th>Date</th></tr></thead>
-    <tbody>${sales.map(s=>`<tr><td>${esc(s.invNo||'—')}</td><td>${esc(s.name)}</td><td>${esc(s.customer||'Walk-in')}</td><td>${s.qty}</td><td>₹${(s.subtotal||0).toLocaleString('en-IN')}</td><td>₹${(s.gst||0).toLocaleString('en-IN')}</td><td><strong>₹${(s.grand||0).toLocaleString('en-IN')}</strong></td><td>${esc(s.status||'Paid')}</td><td>${s.date}</td></tr>`).join('')}</tbody></table>
+    <tbody>${sales.map(s=>{
+      const items = itemsOf(s,'sale');
+      const prodLabel = items.length>1 ? `${esc(items[0].name)} +${items.length-1} more` : esc(items[0].name);
+      return `<tr><td>${esc(s.invNo||'—')}</td><td>${prodLabel}</td><td>${esc(s.customer||'Walk-in')}</td><td>${itemsQty(items)}</td><td>₹${(s.subtotal||0).toLocaleString('en-IN')}</td><td>₹${(s.gst||0).toLocaleString('en-IN')}</td><td><strong>₹${(s.grand||0).toLocaleString('en-IN')}</strong></td><td>${esc(s.status||'Paid')}</td><td>${s.date}</td></tr>`;
+    }).join('')}</tbody></table>
     <p class="total">Total Revenue: ₹${totalRev.toLocaleString('en-IN')}</p>
     <script>window.print();<\/script></body></html>`);
   w.document.close();
