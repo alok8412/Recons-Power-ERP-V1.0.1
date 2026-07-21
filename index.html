@@ -45,6 +45,16 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 .sidebar { width: 240px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: fixed; height: 100vh; z-index: 100; transition: transform 0.3s; }
 .sidebar-logo { padding: 24px 20px; font-family: 'Space Mono', monospace; font-size: 16px; color: var(--accent); border-bottom: 1px solid var(--border); letter-spacing: -1px; }
 .sidebar-logo span { display: block; font-size: 10px; color: var(--muted); font-family: 'DM Sans', sans-serif; font-weight: 400; margin-top: 2px; letter-spacing: 0; }
+/* FIX: sidebar nav now scrolls independently (more sections were added) with a slim slider/scrollbar plus up/down nudge buttons */
+.nav-scroll-btn { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 5px; margin: 0 8px; border: none; background: var(--surface2); color: var(--muted); font-size: 11px; cursor: pointer; border-radius: 6px; flex-shrink: 0; transition: all 0.15s; }
+.nav-scroll-btn:hover { color: var(--accent); background: rgba(34,211,238,0.1); }
+.nav-scroll-btn:disabled { opacity: 0.3; cursor: default; }
+.nav-scroll-btn:disabled:hover { color: var(--muted); background: var(--surface2); }
+.sidebar-nav { flex: 1; overflow-y: auto; min-height: 0; padding-bottom: 4px; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+.sidebar-nav::-webkit-scrollbar { width: 6px; }
+.sidebar-nav::-webkit-scrollbar-track { background: transparent; }
+.sidebar-nav::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px; }
+.sidebar-nav::-webkit-scrollbar-thumb:hover { background: var(--accent); }
 .nav-section { padding: 12px 12px 4px; font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: 1.2px; text-transform: uppercase; }
 .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin: 2px 8px; border-radius: 8px; cursor: pointer; color: var(--muted); font-size: 14px; font-weight: 500; transition: all 0.15s; border: none; background: none; width: calc(100% - 16px); text-align: left; font-family: 'DM Sans', sans-serif; }
 .nav-item:hover { background: var(--surface2); color: var(--text); }
@@ -175,27 +185,36 @@ tbody tr:last-child td { border-bottom: none; }
   <div class="layout">
     <div class="sidebar" id="sidebar">
       <div class="sidebar-logo">⬡ RECONS ERP Pro Powered By ALOK<span>Business Suite v2.0</span></div>
-      <div style="padding:12px 16px;border-bottom:1px solid var(--border)">
-        <label style="display:block;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px">Active Company</label>
-        <select id="companySwitcher" onchange="switchCompany(this.value)" style="width:100%;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif"></select>
+      <button class="nav-scroll-btn" id="navScrollUp" onclick="scrollNav(-160)">▲ Scroll Up</button>
+      <div class="sidebar-nav" id="sidebarNav" onscroll="updateNavScrollBtns()">
+        <div style="padding:12px 16px;border-bottom:1px solid var(--border)">
+          <label style="display:block;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px">Active Company</label>
+          <select id="companySwitcher" onchange="switchCompany(this.value)" style="width:100%;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif"></select>
+        </div>
+        <div class="nav-section">Main</div>
+        <button class="nav-item active" onclick="show('dashboard')"><span class="icon">📊</span> Dashboard</button>
+        <button class="nav-item" onclick="show('inventory')"><span class="icon">📦</span> Inventory</button>
+        <button class="nav-item" onclick="show('quotations')"><span class="icon">🧾</span> Quotations</button>
+        <button class="nav-item" onclick="show('sales')"><span class="icon">🛒</span> Sales Invoices</button>
+        <button class="nav-item" onclick="show('purchases')"><span class="icon">📥</span> Purchase Invoices</button>
+        <div class="nav-section">People</div>
+        <button class="nav-item" onclick="show('customers')"><span class="icon">👥</span> Customers</button>
+        <button class="nav-item" onclick="show('vendors')"><span class="icon">🏭</span> Vendors</button>
+        <button class="nav-item" onclick="show('users')"><span class="icon">🔐</span> Users</button>
+        <div class="nav-section">HRMS</div>
+        <button class="nav-item" onclick="show('hrEmployees')"><span class="icon">🧑‍💼</span> Employees</button>
+        <button class="nav-item" onclick="show('hrAttendance')"><span class="icon">🗓️</span> Attendance</button>
+        <button class="nav-item" onclick="show('hrLeave')"><span class="icon">🌴</span> Leave Requests</button>
+        <button class="nav-item" onclick="show('hrPayroll')"><span class="icon">💰</span> Payroll</button>
+        <div class="nav-section">CRM</div>
+        <button class="nav-item" onclick="show('crm')"><span class="icon">🕒</span> Status Log</button>
+        <div class="nav-section">Analytics</div>
+        <button class="nav-item" onclick="show('reports')"><span class="icon">📈</span> Reports</button>
+        <div class="nav-section">Tools</div>
+        <button class="nav-item" onclick="show('bulkimport')"><span class="icon">📂</span> Bulk Import</button>
+        <button class="nav-item" onclick="show('companies')"><span class="icon">🏢</span> Companies</button>
       </div>
-      <div class="nav-section">Main</div>
-      <button class="nav-item active" onclick="show('dashboard')"><span class="icon">📊</span> Dashboard</button>
-      <button class="nav-item" onclick="show('inventory')"><span class="icon">📦</span> Inventory</button>
-      <button class="nav-item" onclick="show('quotations')"><span class="icon">🧾</span> Quotations</button>
-      <button class="nav-item" onclick="show('sales')"><span class="icon">🛒</span> Sales Invoices</button>
-      <button class="nav-item" onclick="show('purchases')"><span class="icon">📥</span> Purchase Invoices</button>
-      <div class="nav-section">People</div>
-      <button class="nav-item" onclick="show('customers')"><span class="icon">👥</span> Customers</button>
-      <button class="nav-item" onclick="show('vendors')"><span class="icon">🏭</span> Vendors</button>
-      <button class="nav-item" onclick="show('users')"><span class="icon">🔐</span> Users</button>
-      <div class="nav-section">CRM</div>
-      <button class="nav-item" onclick="show('crm')"><span class="icon">🕒</span> Status Log</button>
-      <div class="nav-section">Analytics</div>
-      <button class="nav-item" onclick="show('reports')"><span class="icon">📈</span> Reports</button>
-      <div class="nav-section">Tools</div>
-      <button class="nav-item" onclick="show('bulkimport')"><span class="icon">📂</span> Bulk Import</button>
-      <button class="nav-item" onclick="show('companies')"><span class="icon">🏢</span> Companies</button>
+      <button class="nav-scroll-btn" id="navScrollDown" onclick="scrollNav(160)">▼ Scroll Down</button>
       <div class="sidebar-footer">
         <div class="user-pill">
           <div class="user-avatar" id="userAvatar">A</div>
@@ -549,6 +568,132 @@ tbody tr:last-child td { border-bottom: none; }
         </div>
       </div>
 
+      <!-- HRMS: EMPLOYEES -->
+      <div id="hrEmployees" class="section">
+        <div class="page-header"><h1>HRMS — Employees</h1><p>Manage your employee directory</p></div>
+        <div class="card">
+          <div class="card-title">Add Employee</div>
+          <div class="form-row">
+            <div class="form-group"><label>Full Name</label><input id="heName" placeholder="e.g. Priya Verma"></div>
+            <div class="form-group"><label>Designation</label><input id="heDesignation" placeholder="e.g. Sales Executive"></div>
+            <div class="form-group" style="max-width:160px"><label>Department</label>
+              <select id="heDept"><option>Sales</option><option>Operations</option><option>Finance</option><option>HR</option><option>IT</option><option>Admin</option><option>Other</option></select></div>
+            <div class="form-group"><label>Phone</label><input id="hePhone" placeholder="e.g. 9876543210" maxlength="10"></div>
+          </div>
+          <div class="form-row" style="margin-top:12px">
+            <div class="form-group"><label>Email</label><input id="heEmail" type="email" placeholder="e.g. priya@company.com"></div>
+            <div class="form-group" style="max-width:160px"><label>Monthly Salary</label><input id="heSalary" type="number" placeholder="e.g. 35000" min="0"></div>
+            <div class="form-group" style="max-width:160px"><label>Date of Joining</label><input id="heJoinDate" type="date"></div>
+            <div class="form-group" style="max-width:130px"><label>Status</label><select id="heStatus"><option>Active</option><option>Inactive</option></select></div>
+            <button class="btn btn-accent" style="margin-top:16px" onclick="addEmployee()">+ Add Employee</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Employee Directory</div>
+          <div class="search-bar">
+            <input id="empSearch" placeholder="🔍 Search employees..." oninput="filterTable('hetable','empSearch')">
+            <button class="btn btn-outline btn-sm" onclick="exportTableCSV('hetable','employees.csv')">⬇ CSV</button>
+          </div>
+          <div class="table-wrap">
+            <table id="hetable">
+              <thead><tr><th>Name</th><th>Designation</th><th>Department</th><th>Phone</th><th>Salary</th><th>Joined</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- HRMS: ATTENDANCE -->
+      <div id="hrAttendance" class="section">
+        <div class="page-header"><h1>HRMS — Attendance</h1><p>Mark and track daily employee attendance</p></div>
+        <div class="stats-grid" id="attStatsGrid"></div>
+        <div class="card">
+          <div class="card-title">Mark Attendance</div>
+          <div class="form-row">
+            <div class="form-group"><label>Employee</label><select id="atEmployee"></select></div>
+            <div class="form-group" style="max-width:160px"><label>Date</label><input id="atDate" type="date"></div>
+            <div class="form-group" style="max-width:150px"><label>Status</label>
+              <select id="atStatus"><option>Present</option><option>Absent</option><option>Half Day</option><option>On Leave</option></select></div>
+            <button class="btn btn-accent" style="margin-top:16px" onclick="markAttendance()">+ Mark Attendance</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Attendance Log</div>
+          <div class="search-bar">
+            <input id="attSearch" placeholder="🔍 Search attendance..." oninput="filterTable('attable','attSearch')">
+            <select id="attStatusFilter" style="max-width:140px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px" onchange="filterByStatus('attable','attStatusFilter')">
+              <option value="">All Status</option><option value="Present">Present</option><option value="Absent">Absent</option><option value="Half Day">Half Day</option><option value="On Leave">On Leave</option>
+            </select>
+            <button class="btn btn-outline btn-sm" onclick="exportTableCSV('attable','attendance.csv')">⬇ CSV</button>
+          </div>
+          <div class="table-wrap">
+            <table id="attable">
+              <thead><tr><th>Employee</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- HRMS: LEAVE REQUESTS -->
+      <div id="hrLeave" class="section">
+        <div class="page-header"><h1>HRMS — Leave Requests</h1><p>Apply for and approve employee leave</p></div>
+        <div class="card">
+          <div class="card-title">Apply for Leave</div>
+          <div class="form-row">
+            <div class="form-group"><label>Employee</label><select id="lvEmployee"></select></div>
+            <div class="form-group" style="max-width:150px"><label>From</label><input id="lvFrom" type="date"></div>
+            <div class="form-group" style="max-width:150px"><label>To</label><input id="lvTo" type="date"></div>
+            <div class="form-group"><label>Reason</label><input id="lvReason" placeholder="e.g. Family function"></div>
+            <button class="btn btn-accent" style="margin-top:16px" onclick="applyLeave()">+ Apply Leave</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Leave Requests</div>
+          <div class="search-bar">
+            <input id="lvSearch" placeholder="🔍 Search leave requests..." oninput="filterTable('lvtable','lvSearch')">
+            <select id="lvStatusFilter" style="max-width:140px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px" onchange="filterByStatus('lvtable','lvStatusFilter')">
+              <option value="">All Status</option><option value="Pending">Pending</option><option value="Approved">Approved</option><option value="Rejected">Rejected</option>
+            </select>
+            <button class="btn btn-outline btn-sm" onclick="exportTableCSV('lvtable','leave_requests.csv')">⬇ CSV</button>
+          </div>
+          <div class="table-wrap">
+            <table id="lvtable">
+              <thead><tr><th>Employee</th><th>From</th><th>To</th><th>Days</th><th>Reason</th><th>Status</th><th>Applied</th><th>Actions</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- HRMS: PAYROLL -->
+      <div id="hrPayroll" class="section">
+        <div class="page-header"><h1>HRMS — Payroll</h1><p>Generate and track monthly employee payroll</p></div>
+        <div class="card">
+          <div class="card-title">Generate Payroll</div>
+          <div class="form-row">
+            <div class="form-group"><label>Employee</label><select id="prEmployee"></select></div>
+            <div class="form-group" style="max-width:150px"><label>Month</label><input id="prMonth" type="month"></div>
+            <div class="form-group" style="max-width:160px"><label>Deductions (optional)</label><input id="prDeductions" type="number" placeholder="0" min="0"></div>
+            <button class="btn btn-accent" style="margin-top:16px" onclick="generatePayroll()">💰 Generate Payslip</button>
+          </div>
+          <p style="font-size:12px;color:var(--muted);margin-top:10px">Net pay = employee's monthly salary minus any deductions entered above.</p>
+        </div>
+        <div class="card">
+          <div class="card-title">Payroll Records</div>
+          <div class="search-bar">
+            <input id="prSearch" placeholder="🔍 Search payroll..." oninput="filterTable('prtable','prSearch')">
+            <button class="btn btn-outline btn-sm" onclick="exportTableCSV('prtable','payroll.csv')">⬇ CSV</button>
+          </div>
+          <div class="table-wrap">
+            <table id="prtable">
+              <thead><tr><th>Employee</th><th>Month</th><th>Basic</th><th>Deductions</th><th>Net Pay</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       <!-- CRM: STATUS LOG -->
       <div id="crm" class="section">
         <div class="page-header"><h1>CRM — Status Log</h1><p>Full timeline of every status change across quotations, sales & purchase invoices</p></div>
@@ -562,6 +707,9 @@ tbody tr:last-child td { border-bottom: none; }
               <option value="Quotation">Quotation</option>
               <option value="Sales Invoice">Sales Invoice</option>
               <option value="Purchase Invoice">Purchase Invoice</option>
+              <option value="Employee">Employee</option>
+              <option value="Leave Request">Leave Request</option>
+              <option value="Payroll">Payroll</option>
             </select>
             <button class="btn btn-outline btn-sm" onclick="exportTableCSV('crmtable','status_log.csv')">⬇ CSV</button>
           </div>
@@ -758,6 +906,35 @@ tbody tr:last-child td { border-bottom: none; }
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('editExpenseModal')">Cancel</button>
       <button class="btn btn-accent" onclick="saveExpenseEdit()">💾 Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT EMPLOYEE MODAL -->
+<div class="modal-bg" id="editEmployeeModal">
+  <div class="modal">
+    <h3>✏️ Edit Employee</h3>
+    <input type="hidden" id="heIndex">
+    <div class="form-row" style="flex-direction:column;align-items:stretch;gap:14px">
+      <div class="form-group"><label>Full Name</label><input id="heEditName"></div>
+      <div class="form-group"><label>Designation</label><input id="heEditDesignation"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Department</label>
+          <select id="heEditDept"><option>Sales</option><option>Operations</option><option>Finance</option><option>HR</option><option>IT</option><option>Admin</option><option>Other</option></select></div>
+        <div class="form-group"><label>Status</label><select id="heEditStatus"><option>Active</option><option>Inactive</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Phone</label><input id="heEditPhone" maxlength="10"></div>
+        <div class="form-group"><label>Email</label><input id="heEditEmail" type="email"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Monthly Salary</label><input id="heEditSalary" type="number" min="0"></div>
+        <div class="form-group"><label>Date of Joining</label><input id="heEditJoinDate" type="date"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('editEmployeeModal')">Cancel</button>
+      <button class="btn btn-accent" onclick="saveEmployeeEdit()">💾 Save Changes</button>
     </div>
   </div>
 </div>
@@ -987,6 +1164,7 @@ function parseExpenses(raw) {
 }
 
 let companyProfile, products, customers, vendors, sales, purchases, expenses, quotations, invoiceCounters, statusLog;
+let employees, attendance, leaves, payroll;
 let importPreviews = {};
 let importHistory  = [];
 
@@ -1002,6 +1180,11 @@ function loadCompanyData() {
   invoiceCounters = JSON.parse(localStorage.getItem(ck("erp_inv_counters"))) || { sale:0, purchase:0, quote:0 };
   if (invoiceCounters.quote === undefined) invoiceCounters.quote = 0;
   statusLog       = JSON.parse(localStorage.getItem(ck("erp_status_log"))) || [];
+  // ===== HRMS data =====
+  employees       = JSON.parse(localStorage.getItem(ck("erp_employees")))  || [];
+  attendance      = JSON.parse(localStorage.getItem(ck("erp_attendance"))) || [];
+  leaves          = JSON.parse(localStorage.getItem(ck("erp_leaves")))     || [];
+  payroll         = JSON.parse(localStorage.getItem(ck("erp_payroll")))    || [];
   importPreviews  = {};
   importHistory   = [];
 }
@@ -1050,7 +1233,10 @@ function genericStatusBadge(status) {
   if (!status || status === '—') return `<span style="color:var(--muted)">—</span>`;
   const map = {
     Draft:'badge-blue', Sent:'badge-yellow', Accepted:'badge-green', Rejected:'badge-red', Expired:'badge-purple',
-    Paid:'badge-green', Unpaid:'badge-red', Deleted:'badge-red'
+    Paid:'badge-green', Unpaid:'badge-red', Deleted:'badge-red',
+    Active:'badge-green', Inactive:'badge-red',
+    Pending:'badge-yellow', Approved:'badge-green',
+    Present:'badge-green', Absent:'badge-red', 'Half Day':'badge-yellow', 'On Leave':'badge-purple'
   };
   return `<span class="badge ${map[status]||'badge-blue'}">${esc(status)}</span>`;
 }
@@ -1150,6 +1336,7 @@ function login() {
   products  = products.map(p => ({ ...p, qty: Number(p.qty)||0, price: Number(p.price)||0 }));
   loadAll();
   show('dashboard');
+  setTimeout(updateNavScrollBtns, 50);
 }
 
 function resetAndLogin() {
@@ -1174,6 +1361,22 @@ function show(id) {
 
 function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
 
+// FIX: up/down nudge buttons for the sidebar nav list, since it now scrolls (more sections were added than fit in view)
+function scrollNav(delta) {
+  const nav = document.getElementById('sidebarNav');
+  if (nav) nav.scrollBy({ top: delta, behavior: 'smooth' });
+}
+function updateNavScrollBtns() {
+  const nav = document.getElementById('sidebarNav');
+  const up = document.getElementById('navScrollUp');
+  const down = document.getElementById('navScrollDown');
+  if (!nav || !up || !down) return;
+  up.disabled = nav.scrollTop <= 2;
+  down.disabled = nav.scrollTop >= nav.scrollHeight - nav.clientHeight - 2;
+}
+document.addEventListener('DOMContentLoaded', () => setTimeout(updateNavScrollBtns, 100));
+window.addEventListener('resize', updateNavScrollBtns);
+
 function switchTab(tabId, btn) {
   ['rOverview','rSales','rExpenses','rInventory'].forEach(t => {
     const el = document.getElementById(t);
@@ -1195,6 +1398,10 @@ function save() {
   localStorage.setItem(ck("erp_expenses"),  JSON.stringify(expenses));
   localStorage.setItem(ck("erp_quotations"),JSON.stringify(quotations));
   localStorage.setItem(ck("erp_status_log"),JSON.stringify(statusLog));
+  localStorage.setItem(ck("erp_employees"), JSON.stringify(employees));
+  localStorage.setItem(ck("erp_attendance"),JSON.stringify(attendance));
+  localStorage.setItem(ck("erp_leaves"),    JSON.stringify(leaves));
+  localStorage.setItem(ck("erp_payroll"),   JSON.stringify(payroll));
   localStorage.setItem("erp_users",         JSON.stringify(users));
   loadAll();
 }
@@ -2925,7 +3132,7 @@ function renderStatusLog() {
     tb.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="e-icon">🕒</div><p>No status changes logged yet</p></div></td></tr>`;
     return;
   }
-  const icons = { Quotation:'🧾', 'Sales Invoice':'🛒', 'Purchase Invoice':'📥' };
+  const icons = { Quotation:'🧾', 'Sales Invoice':'🛒', 'Purchase Invoice':'📥', Employee:'🧑‍💼', 'Leave Request':'🌴', Payroll:'💰' };
   tb.innerHTML = statusLog.map(l => `<tr>
     <td>${esc(l.time)}</td>
     <td><span class="badge badge-purple">${icons[l.entity]||'📌'} ${esc(l.entity)}</span></td>
@@ -2934,6 +3141,280 @@ function renderStatusLog() {
     <td>${genericStatusBadge(l.oldStatus)}</td>
     <td>${genericStatusBadge(l.newStatus)}</td>
     <td>${esc(l.user||'System')}</td>
+  </tr>`).join('');
+}
+
+// ===== HRMS: EMPLOYEES =====
+function refreshEmployeeSelects() {
+  const opts = '<option value="">Select employee</option>' +
+    employees.map(e => `<option value="${esc(e.name)}">${esc(e.name)}${e.dept ? ' — '+esc(e.dept) : ''}</option>`).join('');
+  ['atEmployee','lvEmployee','prEmployee'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const prev = sel.value;
+    sel.innerHTML = opts;
+    if ([...sel.options].some(o => o.value === prev)) sel.value = prev;
+  });
+}
+
+function addEmployee() {
+  const name        = document.getElementById('heName').value.trim();
+  const designation = document.getElementById('heDesignation').value.trim();
+  const dept        = document.getElementById('heDept').value;
+  const phone       = document.getElementById('hePhone').value.trim();
+  const email       = document.getElementById('heEmail').value.trim();
+  const salary      = Number(document.getElementById('heSalary').value);
+  const joinDate    = document.getElementById('heJoinDate').value;
+  const status      = document.getElementById('heStatus').value || 'Active';
+  if (!validateRequired([[name,'Full Name'],[designation,'Designation']])) return;
+  if (!salary || salary <= 0) { showToast('⚠️ Enter a valid monthly salary', 'error'); return; }
+  if (employees.find(e => e.name.toLowerCase() === name.toLowerCase())) { showToast('⚠️ An employee with this name already exists', 'error'); return; }
+  employees.push({ name, designation, dept, phone, email, salary, joinDate: joinDate || new Date().toLocaleDateString(), status });
+  logStatusChange('Employee', name, dept, null, status);
+  ['heName','heDesignation','hePhone','heEmail','heSalary','heJoinDate'].forEach(id => document.getElementById(id).value = '');
+  save();
+  loadEmployees();
+  showToast(`✅ Employee "${name}" added!`);
+}
+
+function delEmployee(i) {
+  if (!confirm('Delete this employee? Their attendance, leave & payroll history will be kept.')) return;
+  const e = employees[i];
+  logStatusChange('Employee', e.name, e.dept, e.status, 'Deleted');
+  employees.splice(i, 1);
+  save();
+  loadEmployees();
+  showToast('🗑️ Employee deleted', 'error');
+}
+
+function editEmployee(i) {
+  const e = employees[i];
+  if (!e) return;
+  document.getElementById('heIndex').value = i;
+  document.getElementById('heEditName').value = e.name;
+  document.getElementById('heEditDesignation').value = e.designation || '';
+  document.getElementById('heEditDept').value = e.dept || 'Other';
+  document.getElementById('heEditStatus').value = e.status || 'Active';
+  document.getElementById('heEditPhone').value = e.phone || '';
+  document.getElementById('heEditEmail').value = e.email || '';
+  document.getElementById('heEditSalary').value = e.salary || '';
+  let d = new Date(e.joinDate);
+  document.getElementById('heEditJoinDate').value = isNaN(d) ? '' : d.toISOString().split('T')[0];
+  document.getElementById('editEmployeeModal').classList.add('open');
+}
+
+function saveEmployeeEdit() {
+  const i = Number(document.getElementById('heIndex').value);
+  const e = employees[i];
+  if (!e) return;
+  const name        = document.getElementById('heEditName').value.trim();
+  const designation = document.getElementById('heEditDesignation').value.trim();
+  const dept        = document.getElementById('heEditDept').value;
+  const status      = document.getElementById('heEditStatus').value || 'Active';
+  const phone       = document.getElementById('heEditPhone').value.trim();
+  const email       = document.getElementById('heEditEmail').value.trim();
+  const salary      = Number(document.getElementById('heEditSalary').value);
+  const joinDate    = document.getElementById('heEditJoinDate').value;
+  if (!validateRequired([[name,'Full Name'],[designation,'Designation']])) return;
+  if (!salary || salary <= 0) { showToast('⚠️ Enter a valid monthly salary', 'error'); return; }
+  if (status !== e.status) logStatusChange('Employee', name, dept, e.status, status);
+  employees[i] = { ...e, name, designation, dept, status, phone, email, salary, joinDate: joinDate ? new Date(joinDate).toLocaleDateString() : e.joinDate };
+  closeModal('editEmployeeModal');
+  save();
+  loadEmployees();
+  showToast('✅ Employee updated!');
+}
+
+function loadEmployees() {
+  refreshEmployeeSelects();
+  const tb = document.querySelector('#hetable tbody');
+  if (!employees.length) {
+    tb.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="e-icon">🧑‍💼</div><p>No employees yet</p></div></td></tr>`;
+    return;
+  }
+  const indexed = employees.map((e,i) => ({ ...e, _idx:i }));
+  tb.innerHTML = [...indexed].reverse().map(e => `<tr>
+    <td><strong>${esc(e.name)}</strong></td>
+    <td>${esc(e.designation||'—')}</td>
+    <td>${esc(e.dept||'—')}</td>
+    <td>${esc(e.phone||'—')}</td>
+    <td>₹${(e.salary||0).toLocaleString('en-IN')}</td>
+    <td>${esc(e.joinDate||'—')}</td>
+    <td>${genericStatusBadge(e.status||'Active')}</td>
+    <td><div class="action-cell">
+      <button class="btn btn-warn btn-sm" onclick="editEmployee(${e._idx})">Edit</button>
+      <button class="btn btn-danger btn-sm" onclick="delEmployee(${e._idx})">Delete</button>
+    </div></td>
+  </tr>`).join('');
+}
+
+// ===== HRMS: ATTENDANCE =====
+function markAttendance() {
+  const emp    = document.getElementById('atEmployee').value;
+  const date   = document.getElementById('atDate').value;
+  const status = document.getElementById('atStatus').value || 'Present';
+  if (!emp) { showToast('⚠️ Select an employee', 'error'); return; }
+  if (!date) { showToast('⚠️ Select a date', 'error'); return; }
+  const existing = attendance.find(a => a.emp === emp && a.date === date);
+  if (existing) { existing.status = status; showToast(`✅ Attendance updated for ${emp}`); }
+  else { attendance.push({ emp, date, status }); showToast(`✅ Attendance marked for ${emp}`); }
+  save();
+  loadAttendance();
+}
+
+function delAttendance(i) {
+  if (!confirm('Delete this attendance record?')) return;
+  attendance.splice(i, 1);
+  save();
+  loadAttendance();
+  showToast('🗑️ Attendance record deleted', 'error');
+}
+
+function loadAttendance() {
+  const today = new Date().toISOString().split('T')[0];
+  const todays = attendance.filter(a => a.date === today);
+  const statsEl = document.getElementById('attStatsGrid');
+  if (statsEl) {
+    const count = s => todays.filter(a => a.status === s).length;
+    statsEl.innerHTML = `
+      <div class="stat-card" style="--c:var(--accent)"><div class="stat-icon">🧑‍💼</div><div class="stat-value">${employees.length}</div><div class="stat-label">Total Employees</div></div>
+      <div class="stat-card" style="--c:var(--success)"><div class="stat-icon">✅</div><div class="stat-value">${count('Present')}</div><div class="stat-label">Present Today</div></div>
+      <div class="stat-card" style="--c:var(--danger)"><div class="stat-icon">❌</div><div class="stat-value">${count('Absent')}</div><div class="stat-label">Absent Today</div></div>
+      <div class="stat-card" style="--c:var(--accent3)"><div class="stat-icon">🌴</div><div class="stat-value">${count('On Leave')}</div><div class="stat-label">On Leave Today</div></div>`;
+  }
+  const tb = document.querySelector('#attable tbody');
+  if (!attendance.length) {
+    tb.innerHTML = `<tr><td colspan="4"><div class="empty-state"><div class="e-icon">🗓️</div><p>No attendance marked yet</p></div></td></tr>`;
+    return;
+  }
+  const indexed = attendance.map((a,i) => ({ ...a, _idx:i }));
+  tb.innerHTML = [...indexed].reverse().map(a => `<tr>
+    <td><strong>${esc(a.emp)}</strong></td>
+    <td>${esc(a.date)}</td>
+    <td>${genericStatusBadge(a.status)}</td>
+    <td><div class="action-cell"><button class="btn btn-danger btn-sm" onclick="delAttendance(${a._idx})">Delete</button></div></td>
+  </tr>`).join('');
+}
+
+// ===== HRMS: LEAVE REQUESTS =====
+function applyLeave() {
+  const emp    = document.getElementById('lvEmployee').value;
+  const from   = document.getElementById('lvFrom').value;
+  const to     = document.getElementById('lvTo').value;
+  const reason = document.getElementById('lvReason').value.trim();
+  if (!emp) { showToast('⚠️ Select an employee', 'error'); return; }
+  if (!from || !to) { showToast('⚠️ Select both from and to dates', 'error'); return; }
+  if (new Date(to) < new Date(from)) { showToast('⚠️ "To" date cannot be before "From" date', 'error'); return; }
+  if (!validateRequired([[reason,'Reason']])) return;
+  const days = Math.round((new Date(to) - new Date(from)) / 86400000) + 1;
+  leaves.push({ emp, from, to, days, reason, status:'Pending', appliedDate: new Date().toLocaleString() });
+  logStatusChange('Leave Request', `${emp} (${from} → ${to})`, emp, null, 'Pending');
+  document.getElementById('lvFrom').value = '';
+  document.getElementById('lvTo').value = '';
+  document.getElementById('lvReason').value = '';
+  save();
+  loadLeaves();
+  showToast(`✅ Leave request submitted for ${emp}`);
+}
+
+function setLeaveStatus(i, newStatus) {
+  const l = leaves[i];
+  if (!l) return;
+  logStatusChange('Leave Request', `${l.emp} (${l.from} → ${l.to})`, l.emp, l.status, newStatus);
+  l.status = newStatus;
+  save();
+  loadLeaves();
+  showToast(newStatus === 'Approved' ? `✅ Leave approved for ${l.emp}` : `🚫 Leave rejected for ${l.emp}`, newStatus === 'Approved' ? 'success' : 'error');
+}
+
+function delLeave(i) {
+  if (!confirm('Delete this leave request?')) return;
+  leaves.splice(i, 1);
+  save();
+  loadLeaves();
+  showToast('🗑️ Leave request deleted', 'error');
+}
+
+function loadLeaves() {
+  const tb = document.querySelector('#lvtable tbody');
+  if (!leaves.length) {
+    tb.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="e-icon">🌴</div><p>No leave requests yet</p></div></td></tr>`;
+    return;
+  }
+  const indexed = leaves.map((l,i) => ({ ...l, _idx:i }));
+  tb.innerHTML = [...indexed].reverse().map(l => `<tr>
+    <td><strong>${esc(l.emp)}</strong></td>
+    <td>${esc(l.from)}</td>
+    <td>${esc(l.to)}</td>
+    <td>${l.days}</td>
+    <td>${esc(l.reason)}</td>
+    <td>${genericStatusBadge(l.status)}</td>
+    <td>${esc(l.appliedDate)}</td>
+    <td><div class="action-cell">
+      ${l.status === 'Pending' ? `<button class="btn btn-success btn-sm" onclick="setLeaveStatus(${l._idx},'Approved')">Approve</button><button class="btn btn-danger btn-sm" onclick="setLeaveStatus(${l._idx},'Rejected')">Reject</button>` : ''}
+      <button class="btn btn-outline btn-sm" onclick="delLeave(${l._idx})">Delete</button>
+    </div></td>
+  </tr>`).join('');
+}
+
+// ===== HRMS: PAYROLL =====
+function generatePayroll() {
+  const emp         = document.getElementById('prEmployee').value;
+  const month        = document.getElementById('prMonth').value;
+  const deductions   = Number(document.getElementById('prDeductions').value) || 0;
+  if (!emp) { showToast('⚠️ Select an employee', 'error'); return; }
+  if (!month) { showToast('⚠️ Select a payroll month', 'error'); return; }
+  const e = employees.find(x => x.name === emp);
+  if (!e) { showToast('⚠️ Employee not found', 'error'); return; }
+  if (payroll.find(p => p.emp === emp && p.month === month)) { showToast(`⚠️ Payroll for ${emp} already generated for this month`, 'error'); return; }
+  const basic = Number(e.salary) || 0;
+  const net   = Math.max(0, +(basic - deductions).toFixed(2));
+  payroll.push({ emp, month, basic, deductions, net, status:'Unpaid', date: new Date().toLocaleString() });
+  logStatusChange('Payroll', `${emp} — ${month}`, emp, null, 'Unpaid');
+  document.getElementById('prDeductions').value = '';
+  save();
+  loadPayroll();
+  showToast(`✅ Payslip generated for ${emp}`);
+}
+
+function togglePayrollStatus(i) {
+  const p = payroll[i];
+  if (!p) return;
+  const newStatus = p.status === 'Paid' ? 'Unpaid' : 'Paid';
+  logStatusChange('Payroll', `${p.emp} — ${p.month}`, p.emp, p.status, newStatus);
+  p.status = newStatus;
+  save();
+  loadPayroll();
+  showToast(`✅ Marked as ${newStatus}`);
+}
+
+function delPayroll(i) {
+  if (!confirm('Delete this payroll record?')) return;
+  payroll.splice(i, 1);
+  save();
+  loadPayroll();
+  showToast('🗑️ Payroll record deleted', 'error');
+}
+
+function loadPayroll() {
+  const tb = document.querySelector('#prtable tbody');
+  if (!payroll.length) {
+    tb.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="e-icon">💰</div><p>No payroll records yet</p></div></td></tr>`;
+    return;
+  }
+  const indexed = payroll.map((p,i) => ({ ...p, _idx:i }));
+  tb.innerHTML = [...indexed].reverse().map(p => `<tr>
+    <td><strong>${esc(p.emp)}</strong></td>
+    <td>${esc(p.month)}</td>
+    <td>₹${(p.basic||0).toLocaleString('en-IN')}</td>
+    <td>₹${(p.deductions||0).toLocaleString('en-IN')}</td>
+    <td><strong>₹${(p.net||0).toLocaleString('en-IN')}</strong></td>
+    <td>${statusBadge(p.status||'Unpaid')}</td>
+    <td>${esc(p.date)}</td>
+    <td><div class="action-cell">
+      <button class="btn ${p.status==='Paid'?'btn-outline':'btn-success'} btn-sm" onclick="togglePayrollStatus(${p._idx})">${p.status==='Paid'?'Mark Unpaid':'Mark Paid'}</button>
+      <button class="btn btn-danger btn-sm" onclick="delPayroll(${p._idx})">Delete</button>
+    </div></td>
   </tr>`).join('');
 }
 
@@ -2947,6 +3428,10 @@ function loadAll() {
   loadPurchases();
   loadExpenses();
   loadUsers();
+  loadEmployees();
+  loadAttendance();
+  loadLeaves();
+  loadPayroll();
   loadCompanyProfile();
   loadDashboard();
   renderCompanySwitcher();
@@ -2962,6 +3447,8 @@ document.addEventListener('DOMContentLoaded', () => {
   if (pd) pd.value = new Date().toISOString().split('T')[0];
   const qv = document.getElementById('qValidTill');
   if (qv) { const d = new Date(); d.setDate(d.getDate()+7); qv.value = d.toISOString().split('T')[0]; }
+  const ad = document.getElementById('atDate');
+  if (ad) ad.value = new Date().toISOString().split('T')[0];
 });
 </script>
 </body>
