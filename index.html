@@ -774,6 +774,26 @@ tbody tr:last-child td { border-bottom: none; }
   </div>
 </div>
 
+<!-- CONVERT QUOTATION TO SALE MODAL -->
+<div class="modal-bg" id="convertQuoteModal">
+  <div class="modal" style="max-width:600px">
+    <h3>🔁 Convert Quotation to Sale</h3>
+    <input type="hidden" id="cqIndex">
+    <p style="font-size:12px;color:var(--muted);margin-bottom:10px">If a product is short on stock, lower its quantity below (or remove the line) before confirming.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Product</th><th>Qty</th><th>In Stock</th><th>Price</th><th>Subtotal</th><th></th></tr></thead>
+        <tbody id="cqBody"></tbody>
+      </table>
+    </div>
+    <div id="cqTotals" style="margin-top:12px;font-size:13px;color:var(--muted)"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('convertQuoteModal')">Cancel</button>
+      <button class="btn btn-success" onclick="confirmConvertQuote()">✅ Confirm & Create Invoice</button>
+    </div>
+  </div>
+</div>
+
 <!-- EDIT PURCHASE MODAL -->
 <div class="modal-bg" id="editPurchaseModal">
   <div class="modal">
@@ -1845,23 +1865,77 @@ function saveQuotationEdit() {
   showToast('✅ Quotation updated!');
 }
 
-// FIX: convert an accepted quotation into a real sales invoice, deduct stock for every line item, and link the two records
-function convertQuoteToSale(i) {
+// FIX: convert an accepted quotation into a real sales invoice, deduct stock for every line item, and link the two records.
+// Opens an editable review modal so quantities can be lowered (or a line removed) when stock is short, instead of just blocking with an error.
+let convertCart = [];
+let convertQuoteIndex = null;
+
+function openConvertQuote(i) {
   const q = quotations[i];
   if (!q) return;
   if (q.convertedInvNo) { showToast(`⚠️ Already converted to ${q.convertedInvNo}`, 'error'); return; }
   const items = itemsOf(q,'quote');
-  for (const it of items) {
-    const p = products.find(x => x.name === it.name);
-    if (!p) { showToast(`⚠️ Product "${it.name}" no longer exists`, 'error'); return; }
-    if (p.qty < it.qty) { showToast(`⚠️ Only ${p.qty} in stock for ${it.name}!`, 'error'); return; }
-  }
-  if (!confirm(`Convert quotation ${q.quoteNo} into a Sales Invoice?`)) return;
+  if (!items.length) { showToast('⚠️ Quotation has no items', 'error'); return; }
+  convertQuoteIndex = i;
+  convertCart = items.map(it => ({ name: it.name, qty: it.qty, price: it.price }));
+  document.getElementById('cqIndex').value = i;
+  renderConvertCart();
+  document.getElementById('convertQuoteModal').classList.add('open');
+}
 
-  const saleItems = items.map(it => {
-    const p = products.find(x => x.name === it.name);
-    p.qty -= it.qty;
-    return { name: it.name, qty: it.qty, price: it.price, subtotal: it.subtotal };
+// FIX: lets the user update an item's quantity right inside the convert-to-sale review, so a low-stock line no longer blocks conversion
+function updateConvertQty(idx, val) {
+  const item = convertCart[idx];
+  if (!item) return;
+  const qty = Number(val);
+  if (!qty || qty <= 0) { showToast('⚠️ Enter valid quantity', 'error'); renderConvertCart(); return; }
+  item.qty = qty;
+  renderConvertCart();
+}
+
+function removeConvertItem(idx) {
+  convertCart.splice(idx, 1);
+  renderConvertCart();
+}
+
+function renderConvertCart() {
+  const body = document.getElementById('cqBody');
+  const totalsEl = document.getElementById('cqTotals');
+  if (!convertCart.length) { body.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--muted)">No items left</td></tr>`; totalsEl.innerHTML=''; return; }
+  body.innerHTML = convertCart.map((c,i) => {
+    const p = products.find(x => x.name === c.name);
+    const stock = p ? p.qty : 0;
+    const otherQtyInCart = convertCart.filter((x,idx) => idx!==i && x.name===c.name).reduce((a,b)=>a+b.qty,0);
+    const short = !p || stock < otherQtyInCart + c.qty;
+    return `<tr>
+      <td>${esc(c.name)}</td>
+      <td><input type="number" min="1" value="${c.qty}" style="width:70px;padding:6px 8px;background:var(--bg);border:1px solid ${short?'var(--danger)':'var(--border)'};border-radius:6px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px" onchange="updateConvertQty(${i}, this.value)"></td>
+      <td>${p ? `<span class="badge ${short?'badge-red':'badge-green'}">${stock}</span>` : `<span class="badge badge-red">missing</span>`}</td>
+      <td>₹${c.price.toLocaleString('en-IN')}</td>
+      <td>₹${(c.qty*c.price).toLocaleString('en-IN',{minimumFractionDigits:2})}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="removeConvertItem(${i})">✕</button></td>
+    </tr>`;
+  }).join('');
+  const subtotal = convertCart.reduce((a,b) => a+b.qty*b.price, 0);
+  const gst = +(subtotal*0.18).toFixed(2);
+  const grand = +(subtotal+gst).toFixed(2);
+  totalsEl.innerHTML = `Subtotal: ₹${subtotal.toLocaleString('en-IN',{minimumFractionDigits:2})} &nbsp;|&nbsp; GST (18%): ₹${gst.toLocaleString('en-IN',{minimumFractionDigits:2})} &nbsp;|&nbsp; <strong style="color:var(--accent)">Grand Total: ₹${grand.toLocaleString('en-IN',{minimumFractionDigits:2})}</strong>`;
+}
+
+function confirmConvertQuote() {
+  const i = convertQuoteIndex;
+  const q = quotations[i];
+  if (!q) return;
+  if (!convertCart.length) { showToast('⚠️ Add at least one item before converting', 'error'); return; }
+  for (const c of convertCart) {
+    const p = products.find(x => x.name === c.name);
+    if (!p) { showToast(`⚠️ Product "${c.name}" no longer exists`, 'error'); return; }
+    if (p.qty < c.qty) { showToast(`⚠️ Only ${p.qty} in stock for ${c.name}! Lower the quantity.`, 'error'); return; }
+  }
+  const saleItems = convertCart.map(c => {
+    const p = products.find(x => x.name === c.name);
+    p.qty -= c.qty;
+    return { name: c.name, qty: c.qty, price: c.price, subtotal: +(c.qty*c.price).toFixed(2) };
   });
   const subtotal = +saleItems.reduce((a,b) => a+b.subtotal, 0).toFixed(2);
   const gst      = +(subtotal * 0.18).toFixed(2);
@@ -1871,6 +1945,7 @@ function convertQuoteToSale(i) {
   sales.push(sale);
 
   quotations[i] = { ...q, status: 'Accepted', convertedInvNo: invNo };
+  closeModal('convertQuoteModal');
   save();
   showToast(`✅ Converted to Sales Invoice ${invNo}!`);
   showInvoice(sale, 'sale');
@@ -1895,7 +1970,7 @@ function loadQuotations() {
     <td><div class="action-cell">
       <button class="btn btn-outline btn-sm" onclick="showInvoice(quotations[${q._idx}],'quote')">View</button>
       <button class="btn btn-warn btn-sm" onclick="editQuotation(${q._idx})">Edit</button>
-      ${q.convertedInvNo ? `<span class="badge badge-green" title="Converted">→ ${esc(q.convertedInvNo)}</span>` : `<button class="btn btn-success btn-sm" onclick="convertQuoteToSale(${q._idx})">Convert</button>`}
+      ${q.convertedInvNo ? `<span class="badge badge-green" title="Converted">→ ${esc(q.convertedInvNo)}</span>` : `<button class="btn btn-success btn-sm" onclick="openConvertQuote(${q._idx})">Convert</button>`}
       <button class="btn btn-danger btn-sm" onclick="delQuotation(${q._idx})">Delete</button>
     </div></td>
   </tr>`).join('');
