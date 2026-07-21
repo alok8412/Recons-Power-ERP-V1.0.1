@@ -1596,6 +1596,21 @@ function addSaleCartItem() {
 
 function removeSaleCartItem(i) { saleCart.splice(i, 1); renderSaleCart(); }
 
+// FIX: allow editing the quantity of an item already in the sale cart, with stock validation
+function updateSaleCartQty(i, val) {
+  const item = saleCart[i];
+  if (!item) return;
+  const qty = Number(val);
+  if (!qty || qty <= 0) { showToast('⚠️ Enter valid quantity', 'error'); renderSaleCart(); return; }
+  const p = products.find(x => x.name === item.name);
+  if (p) {
+    const otherQtyInCart = saleCart.filter((c,idx) => idx!==i && c.name===item.name).reduce((a,b)=>a+b.qty,0);
+    if (p.qty < otherQtyInCart + qty) { showToast(`⚠️ Only ${p.qty} in stock!`, 'error'); renderSaleCart(); return; }
+  }
+  item.qty = qty;
+  renderSaleCart();
+}
+
 function renderSaleCart() {
   const wrap = document.getElementById('sCartWrap');
   const body = document.getElementById('sCartBody');
@@ -1603,7 +1618,9 @@ function renderSaleCart() {
   if (!saleCart.length) { wrap.style.display = 'none'; totalsEl.innerHTML = ''; return; }
   wrap.style.display = 'block';
   body.innerHTML = saleCart.map((c,i) => `<tr>
-    <td>${esc(c.name)}</td><td>${c.qty}</td><td>₹${c.price.toLocaleString('en-IN')}</td>
+    <td>${esc(c.name)}</td>
+    <td><input type="number" min="1" value="${c.qty}" style="width:70px;padding:6px 8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px" onchange="updateSaleCartQty(${i}, this.value)"></td>
+    <td>₹${c.price.toLocaleString('en-IN')}</td>
     <td>₹${(c.qty*c.price).toLocaleString('en-IN',{minimumFractionDigits:2})}</td>
     <td><button class="btn btn-danger btn-sm" onclick="removeSaleCartItem(${i})">✕</button></td>
   </tr>`).join('');
@@ -1744,6 +1761,16 @@ function addQuoteCartItem() {
 
 function removeQuoteCartItem(i) { quoteCart.splice(i, 1); renderQuoteCart(); }
 
+// FIX: allow editing the quantity of an item already in the quotation cart
+function updateQuoteCartQty(i, val) {
+  const item = quoteCart[i];
+  if (!item) return;
+  const qty = Number(val);
+  if (!qty || qty <= 0) { showToast('⚠️ Enter valid quantity', 'error'); renderQuoteCart(); return; }
+  item.qty = qty;
+  renderQuoteCart();
+}
+
 function renderQuoteCart() {
   const wrap = document.getElementById('qCartWrap');
   const body = document.getElementById('qCartBody');
@@ -1751,7 +1778,9 @@ function renderQuoteCart() {
   if (!quoteCart.length) { wrap.style.display = 'none'; totalsEl.innerHTML = ''; return; }
   wrap.style.display = 'block';
   body.innerHTML = quoteCart.map((c,i) => `<tr>
-    <td>${esc(c.name)}</td><td>${c.qty}</td><td>₹${c.price.toLocaleString('en-IN')}</td>
+    <td>${esc(c.name)}</td>
+    <td><input type="number" min="1" value="${c.qty}" style="width:70px;padding:6px 8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px" onchange="updateQuoteCartQty(${i}, this.value)"></td>
+    <td>₹${c.price.toLocaleString('en-IN')}</td>
     <td>₹${(c.qty*c.price).toLocaleString('en-IN',{minimumFractionDigits:2})}</td>
     <td><button class="btn btn-danger btn-sm" onclick="removeQuoteCartItem(${i})">✕</button></td>
   </tr>`).join('');
