@@ -189,6 +189,8 @@ tbody tr:last-child td { border-bottom: none; }
       <button class="nav-item" onclick="show('customers')"><span class="icon">👥</span> Customers</button>
       <button class="nav-item" onclick="show('vendors')"><span class="icon">🏭</span> Vendors</button>
       <button class="nav-item" onclick="show('users')"><span class="icon">🔐</span> Users</button>
+      <div class="nav-section">CRM</div>
+      <button class="nav-item" onclick="show('crm')"><span class="icon">🕒</span> Status Log</button>
       <div class="nav-section">Analytics</div>
       <button class="nav-item" onclick="show('reports')"><span class="icon">📈</span> Reports</button>
       <div class="nav-section">Tools</div>
@@ -543,6 +545,31 @@ tbody tr:last-child td { border-bottom: none; }
                 <tbody></tbody>
               </table>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CRM: STATUS LOG -->
+      <div id="crm" class="section">
+        <div class="page-header"><h1>CRM — Status Log</h1><p>Full timeline of every status change across quotations, sales & purchase invoices</p></div>
+        <div class="stats-grid" id="crmStatsGrid"></div>
+        <div class="card">
+          <div class="card-title">Status Log</div>
+          <div class="search-bar">
+            <input id="crmSearch" placeholder="🔍 Search by reference #, customer/vendor, or status..." oninput="filterTable('crmtable','crmSearch')">
+            <select id="crmTypeFilter" style="max-width:170px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px" onchange="filterByStatus('crmtable','crmTypeFilter')">
+              <option value="">All Types</option>
+              <option value="Quotation">Quotation</option>
+              <option value="Sales Invoice">Sales Invoice</option>
+              <option value="Purchase Invoice">Purchase Invoice</option>
+            </select>
+            <button class="btn btn-outline btn-sm" onclick="exportTableCSV('crmtable','status_log.csv')">⬇ CSV</button>
+          </div>
+          <div class="table-wrap">
+            <table id="crmtable">
+              <thead><tr><th>Date &amp; Time</th><th>Type</th><th>Reference #</th><th>Customer / Vendor</th><th>Old Status</th><th>New Status</th><th>Changed By</th></tr></thead>
+              <tbody></tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -959,7 +986,7 @@ function parseExpenses(raw) {
   }));
 }
 
-let companyProfile, products, customers, vendors, sales, purchases, expenses, quotations, invoiceCounters;
+let companyProfile, products, customers, vendors, sales, purchases, expenses, quotations, invoiceCounters, statusLog;
 let importPreviews = {};
 let importHistory  = [];
 
@@ -974,10 +1001,23 @@ function loadCompanyData() {
   quotations      = parseQuotations(JSON.parse(localStorage.getItem(ck("erp_quotations"))));
   invoiceCounters = JSON.parse(localStorage.getItem(ck("erp_inv_counters"))) || { sale:0, purchase:0, quote:0 };
   if (invoiceCounters.quote === undefined) invoiceCounters.quote = 0;
+  statusLog       = JSON.parse(localStorage.getItem(ck("erp_status_log"))) || [];
   importPreviews  = {};
   importHistory   = [];
 }
 loadCompanyData();
+
+// ===== CRM: STATUS LOG =====
+// FIX: records every status change (create / edit / convert / delete) across quotations, sales & purchases so it can be reviewed as a timeline
+function logStatusChange(entity, refNo, party, oldStatus, newStatus) {
+  statusLog.unshift({
+    entity, refNo, party: party || 'Walk-in',
+    oldStatus: oldStatus || '—', newStatus,
+    user: currentUser || 'System',
+    time: new Date().toLocaleString()
+  });
+  if (statusLog.length > 500) statusLog.length = 500; // keep the log from growing unbounded
+}
 
 function nextInvoiceNo(type) {
   const key = type === 'sale' ? 'sale' : type === 'quote' ? 'quote' : 'purchase';
@@ -1003,6 +1043,16 @@ function statusBadge(status) {
   return status === 'Paid'
     ? `<span class="badge badge-green">✓ Paid</span>`
     : `<span class="badge badge-red">⏳ Unpaid</span>`;
+}
+
+// FIX: generic badge for the CRM status log, since old/new status can come from any entity (Draft/Sent/Accepted/Paid/Unpaid/Deleted/etc.)
+function genericStatusBadge(status) {
+  if (!status || status === '—') return `<span style="color:var(--muted)">—</span>`;
+  const map = {
+    Draft:'badge-blue', Sent:'badge-yellow', Accepted:'badge-green', Rejected:'badge-red', Expired:'badge-purple',
+    Paid:'badge-green', Unpaid:'badge-red', Deleted:'badge-red'
+  };
+  return `<span class="badge ${map[status]||'badge-blue'}">${esc(status)}</span>`;
 }
 
 // ===== NUMBER TO WORDS (Indian numbering, for invoice amount-in-words) =====
@@ -1119,6 +1169,7 @@ function show(id) {
   if (btn) btn.classList.add('active');
   document.getElementById('sidebar').classList.remove('open');
   if (id === 'reports') renderReportCharts();
+  if (id === 'crm') renderStatusLog();
 }
 
 function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
@@ -1143,6 +1194,7 @@ function save() {
   localStorage.setItem(ck("erp_purchases"), JSON.stringify(purchases));
   localStorage.setItem(ck("erp_expenses"),  JSON.stringify(expenses));
   localStorage.setItem(ck("erp_quotations"),JSON.stringify(quotations));
+  localStorage.setItem(ck("erp_status_log"),JSON.stringify(statusLog));
   localStorage.setItem("erp_users",         JSON.stringify(users));
   loadAll();
 }
@@ -1672,6 +1724,7 @@ function makeSale() {
   const invNo    = nextInvoiceNo('sale');
   const sale = { invNo, items, name: items[0].name, customer: customer||'Walk-in', qty, subtotal, gst, grand, status, date };
   sales.push(sale);
+  logStatusChange('Sales Invoice', invNo, sale.customer, null, status);
   saleCart = [];
   renderSaleCart();
   save();
@@ -1687,6 +1740,7 @@ function delSale(i) {
     const p = products.find(x => x.name === it.name);
     if (p) p.qty += Number(it.qty) || 0;
   });
+  logStatusChange('Sales Invoice', s.invNo, s.customer, s.status, 'Deleted');
   sales.splice(i, 1);
   save();
   showToast('🗑️ Sale deleted & stock restored', 'error');
@@ -1716,6 +1770,7 @@ function saveSaleEdit() {
   const dateVal  = document.getElementById('esDate').value;
   const status   = document.getElementById('esStatus').value || 'Paid';
   const s = sales[i];
+  if (status !== s.status) logStatusChange('Sales Invoice', s.invNo, customer||s.customer, s.status, status);
   sales[i] = {
     ...s,
     customer: customer || 'Walk-in',
@@ -1824,6 +1879,7 @@ function makeQuotation() {
   const quoteNo  = nextInvoiceNo('quote');
   const quote = { quoteNo, items, name: items[0].name, customer: customer||'Walk-in', qty, subtotal, gst, grand, status:'Draft', validTill, date };
   quotations.push(quote);
+  logStatusChange('Quotation', quoteNo, quote.customer, null, 'Draft');
   quoteCart = [];
   renderQuoteCart();
   save();
@@ -1833,6 +1889,8 @@ function makeQuotation() {
 
 function delQuotation(i) {
   if (!confirm('Delete this quotation?')) return;
+  const q = quotations[i];
+  logStatusChange('Quotation', q.quoteNo, q.customer, q.status, 'Deleted');
   quotations.splice(i, 1);
   save();
   showToast('🗑️ Quotation deleted', 'error');
@@ -1859,6 +1917,7 @@ function saveQuotationEdit() {
   const status   = document.getElementById('eqStatus').value || 'Draft';
   const validTill= document.getElementById('eqValidTill').value;
   const q = quotations[i];
+  if (status !== q.status) logStatusChange('Quotation', q.quoteNo, customer||q.customer, q.status, status);
   quotations[i] = { ...q, customer: customer || 'Walk-in', status, validTill };
   closeModal('editQuotationModal');
   save();
@@ -1943,7 +2002,9 @@ function confirmConvertQuote() {
   const invNo    = nextInvoiceNo('sale');
   const sale = { invNo, items: saleItems, name: saleItems[0].name, customer: q.customer||'Walk-in', qty: itemsQty(saleItems), subtotal, gst, grand, status:'Unpaid', date: new Date().toLocaleString() };
   sales.push(sale);
+  logStatusChange('Sales Invoice', invNo, sale.customer, null, 'Unpaid');
 
+  logStatusChange('Quotation', q.quoteNo, q.customer, q.status, 'Accepted');
   quotations[i] = { ...q, status: 'Accepted', convertedInvNo: invNo };
   closeModal('convertQuoteModal');
   save();
@@ -2202,6 +2263,7 @@ function makePurchase() {
   const invNo    = nextInvoiceNo('purchase');
   const purchase = { invNo, vendor, items, item: items[0].item, rate: items[0].rate, qty, subtotal, gst, grand, status, date };
   purchases.push(purchase);
+  logStatusChange('Purchase Invoice', invNo, vendor, null, status);
 
   purchaseCart = [];
   renderPurchaseCart();
@@ -2217,6 +2279,7 @@ function delPurchase(i) {
     const p = products.find(x => x.name.toLowerCase() === (it.item||'').toLowerCase());
     if (p) p.qty = Math.max(0, (Number(p.qty)||0) - Number(it.qty||0));
   });
+  logStatusChange('Purchase Invoice', pu.invNo, pu.vendor, pu.status, 'Deleted');
   purchases.splice(i, 1);
   save();
   showToast('🗑️ Purchase invoice deleted & stock adjusted', 'error');
@@ -2244,6 +2307,7 @@ function savePurchaseEdit() {
   const status  = document.getElementById('epuStatus').value || 'Unpaid';
   const dateVal = document.getElementById('epuDate').value;
   const pu = purchases[i];
+  if (status !== pu.status) logStatusChange('Purchase Invoice', pu.invNo, vendor||pu.vendor, pu.status, status);
   purchases[i] = {
     ...pu,
     vendor: vendor || pu.vendor,
@@ -2845,6 +2909,34 @@ function renderImportHistory() {
     </div>`).join('');
 }
 
+// ===== CRM: STATUS LOG RENDER =====
+function renderStatusLog() {
+  const statsEl = document.getElementById('crmStatsGrid');
+  const tb = document.querySelector('#crmtable tbody');
+  if (!statsEl || !tb) return;
+  const counts = { Quotation:0, 'Sales Invoice':0, 'Purchase Invoice':0 };
+  statusLog.forEach(l => { if (counts[l.entity] !== undefined) counts[l.entity]++; });
+  statsEl.innerHTML = `
+    <div class="stat-card" style="--c:var(--accent)"><div class="stat-icon">🕒</div><div class="stat-value">${statusLog.length}</div><div class="stat-label">Total Status Changes</div></div>
+    <div class="stat-card" style="--c:var(--accent3)"><div class="stat-icon">🧾</div><div class="stat-value">${counts['Quotation']}</div><div class="stat-label">Quotation Events</div></div>
+    <div class="stat-card" style="--c:var(--success)"><div class="stat-icon">🛒</div><div class="stat-value">${counts['Sales Invoice']}</div><div class="stat-label">Sales Invoice Events</div></div>
+    <div class="stat-card" style="--c:var(--accent2)"><div class="stat-icon">📥</div><div class="stat-value">${counts['Purchase Invoice']}</div><div class="stat-label">Purchase Invoice Events</div></div>`;
+  if (!statusLog.length) {
+    tb.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="e-icon">🕒</div><p>No status changes logged yet</p></div></td></tr>`;
+    return;
+  }
+  const icons = { Quotation:'🧾', 'Sales Invoice':'🛒', 'Purchase Invoice':'📥' };
+  tb.innerHTML = statusLog.map(l => `<tr>
+    <td>${esc(l.time)}</td>
+    <td><span class="badge badge-purple">${icons[l.entity]||'📌'} ${esc(l.entity)}</span></td>
+    <td><strong>${esc(l.refNo||'—')}</strong></td>
+    <td>${esc(l.party||'Walk-in')}</td>
+    <td>${genericStatusBadge(l.oldStatus)}</td>
+    <td>${genericStatusBadge(l.newStatus)}</td>
+    <td>${esc(l.user||'System')}</td>
+  </tr>`).join('');
+}
+
 // ===== LOAD ALL =====
 function loadAll() {
   loadProducts();
@@ -2860,6 +2952,7 @@ function loadAll() {
   renderCompanySwitcher();
   renderCompanies();
   renderImportHistory();
+  renderStatusLog();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
