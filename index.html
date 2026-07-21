@@ -427,8 +427,31 @@ tbody tr:last-child td { border-bottom: none; }
             <div class="form-group"><label>Email</label><input id="cemail" type="email" placeholder="e.g. rahul@email.com"></div>
             <div class="form-group" style="max-width:120px"><label>Type</label>
               <select id="ctype"><option>Regular</option><option>VIP</option><option>Wholesale</option></select></div>
-            <button class="btn btn-accent" style="margin-top:16px" onclick="addCustomer()">+ Add</button>
+            <div class="form-group" style="max-width:190px"><label>GSTIN (optional)</label><input id="cgstin" placeholder="e.g. 07ABCDE1234F1Z5" maxlength="15" style="text-transform:uppercase"></div>
           </div>
+          <div class="two-col" style="margin-top:14px">
+            <div class="form-group">
+              <label>Billing Address</label>
+              <textarea id="cBillingAddr" rows="2" placeholder="Billing address" oninput="syncSameAddr('c')"></textarea>
+            </div>
+            <div class="form-group" style="max-width:220px">
+              <label>Billing Contact No. <span style="text-transform:none;font-weight:400;color:var(--muted)">(if different)</span></label>
+              <input id="cBillingPhone" placeholder="Optional" maxlength="10" oninput="syncSameAddr('c')">
+            </div>
+          </div>
+          <div class="two-col" style="margin-top:10px">
+            <div class="form-group">
+              <label style="display:flex;align-items:center;gap:6px">Shipping Address
+                <span style="display:inline-flex;align-items:center;gap:4px;text-transform:none;font-weight:400;color:var(--muted);font-size:11px;margin-left:6px">
+                  <input type="checkbox" id="cSameAddr" onchange="syncSameAddr('c')"> Same as billing</span></label>
+              <textarea id="cShippingAddr" rows="2" placeholder="Shipping address"></textarea>
+            </div>
+            <div class="form-group" style="max-width:220px">
+              <label>Shipping Contact No. <span style="text-transform:none;font-weight:400;color:var(--muted)">(if different)</span></label>
+              <input id="cShippingPhone" placeholder="Optional" maxlength="10">
+            </div>
+          </div>
+          <div style="margin-top:16px"><button class="btn btn-accent" onclick="addCustomer()">+ Add Customer</button></div>
         </div>
         <div class="card">
           <div class="card-title">Customer Directory</div>
@@ -438,7 +461,7 @@ tbody tr:last-child td { border-bottom: none; }
           </div>
           <div class="table-wrap">
             <table id="ctable">
-              <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Type</th><th>Joined</th><th>Actions</th></tr></thead>
+              <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Type</th><th>GSTIN</th><th>Joined</th><th>Actions</th></tr></thead>
               <tbody></tbody>
             </table>
           </div>
@@ -802,6 +825,14 @@ tbody tr:last-child td { border-bottom: none; }
       <div class="form-group"><label>Email</label><input id="ecEmail" type="email"></div>
       <div class="form-group"><label>Type</label>
         <select id="ecType"><option>Regular</option><option>VIP</option><option>Wholesale</option></select></div>
+      <div class="form-group"><label>GSTIN (optional)</label><input id="ecGstin" maxlength="15" style="text-transform:uppercase"></div>
+      <div class="form-group"><label>Billing Address</label><textarea id="ecBillingAddr" rows="2" oninput="syncSameAddr('ec')"></textarea></div>
+      <div class="form-group"><label>Billing Contact No. <span style="text-transform:none;font-weight:400;color:var(--muted)">(if different)</span></label><input id="ecBillingPhone" maxlength="10" oninput="syncSameAddr('ec')"></div>
+      <div class="form-group"><label style="display:flex;align-items:center;gap:6px">Shipping Address
+        <span style="display:inline-flex;align-items:center;gap:4px;text-transform:none;font-weight:400;color:var(--muted);font-size:11px;margin-left:6px">
+          <input type="checkbox" id="ecSameAddr" onchange="syncSameAddr('ec')"> Same as billing</span></label>
+        <textarea id="ecShippingAddr" rows="2"></textarea></div>
+      <div class="form-group"><label>Shipping Contact No. <span style="text-transform:none;font-weight:400;color:var(--muted)">(if different)</span></label><input id="ecShippingPhone" maxlength="10"></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('editCustomerModal')">Cancel</button>
@@ -1329,15 +1360,38 @@ function loadProducts() {
 }
 
 // ===== CUSTOMERS =====
+// prefix is 'c' for the Add Customer form or 'ec' for the Edit Customer modal
+function syncSameAddr(prefix) {
+  const same = document.getElementById(prefix+'SameAddr').checked;
+  const shipAddr  = document.getElementById(prefix+'ShippingAddr');
+  const shipPhone = document.getElementById(prefix+'ShippingPhone');
+  shipAddr.disabled = same;
+  shipPhone.disabled = same;
+  if (same) {
+    shipAddr.value  = document.getElementById(prefix+'BillingAddr').value;
+    shipPhone.value = document.getElementById(prefix+'BillingPhone').value;
+  }
+}
+
 function addCustomer() {
   const name  = document.getElementById('cname').value.trim();
   const phone = document.getElementById('cphone').value.trim();
   const email = document.getElementById('cemail').value.trim();
   const type  = document.getElementById('ctype').value;
+  const gstin = document.getElementById('cgstin').value.trim().toUpperCase();
+  const billingAddr  = document.getElementById('cBillingAddr').value.trim();
+  const billingPhone = document.getElementById('cBillingPhone').value.trim();
+  const sameAddr = document.getElementById('cSameAddr').checked;
+  const shippingAddr  = sameAddr ? billingAddr : document.getElementById('cShippingAddr').value.trim();
+  const shippingPhone = sameAddr ? billingPhone : document.getElementById('cShippingPhone').value.trim();
   if (!validateRequired([[name,'Name']])) return;
   if (phone && !/^\d{10}$/.test(phone)) { showToast('⚠️ Phone must be 10 digits', 'error'); return; }
-  customers.push({ name, phone, email, type, joined: new Date().toLocaleDateString() });
-  ['cname','cphone','cemail'].forEach(id => document.getElementById(id).value='');
+  if (billingPhone && !/^\d{10}$/.test(billingPhone)) { showToast('⚠️ Billing contact number must be 10 digits', 'error'); return; }
+  if (shippingPhone && !/^\d{10}$/.test(shippingPhone)) { showToast('⚠️ Shipping contact number must be 10 digits', 'error'); return; }
+  customers.push({ name, phone, email, type, gstin, billingAddr, billingPhone, shippingAddr, shippingPhone, sameAddr, joined: new Date().toLocaleDateString() });
+  ['cname','cphone','cemail','cgstin','cBillingAddr','cBillingPhone','cShippingAddr','cShippingPhone'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('cSameAddr').checked = false;
+  syncSameAddr('c');
   save();
   showToast(`✅ Customer "${name}" added!`);
 }
@@ -1357,6 +1411,13 @@ function editCustomer(i) {
   document.getElementById('ecPhone').value = c.phone || '';
   document.getElementById('ecEmail').value = c.email || '';
   document.getElementById('ecType').value  = c.type || 'Regular';
+  document.getElementById('ecGstin').value = c.gstin || '';
+  document.getElementById('ecBillingAddr').value  = c.billingAddr || '';
+  document.getElementById('ecBillingPhone').value = c.billingPhone || '';
+  document.getElementById('ecShippingAddr').value  = c.shippingAddr || '';
+  document.getElementById('ecShippingPhone').value = c.shippingPhone || '';
+  document.getElementById('ecSameAddr').checked = !!c.sameAddr;
+  syncSameAddr('ec');
   document.getElementById('editCustomerModal').classList.add('open');
 }
 
@@ -1366,10 +1427,18 @@ function saveCustomerEdit() {
   const phone = document.getElementById('ecPhone').value.trim();
   const email = document.getElementById('ecEmail').value.trim();
   const type  = document.getElementById('ecType').value;
+  const gstin = document.getElementById('ecGstin').value.trim().toUpperCase();
+  const billingAddr  = document.getElementById('ecBillingAddr').value.trim();
+  const billingPhone = document.getElementById('ecBillingPhone').value.trim();
+  const sameAddr = document.getElementById('ecSameAddr').checked;
+  const shippingAddr  = sameAddr ? billingAddr : document.getElementById('ecShippingAddr').value.trim();
+  const shippingPhone = sameAddr ? billingPhone : document.getElementById('ecShippingPhone').value.trim();
   if (!validateRequired([[name,'Name']])) return;
   if (phone && !/^\d{10}$/.test(phone)) { showToast('⚠️ Phone must be 10 digits', 'error'); return; }
+  if (billingPhone && !/^\d{10}$/.test(billingPhone)) { showToast('⚠️ Billing contact number must be 10 digits', 'error'); return; }
+  if (shippingPhone && !/^\d{10}$/.test(shippingPhone)) { showToast('⚠️ Shipping contact number must be 10 digits', 'error'); return; }
   const oldName = customers[i].name;
-  customers[i] = { ...customers[i], name, phone, email, type };
+  customers[i] = { ...customers[i], name, phone, email, type, gstin, billingAddr, billingPhone, shippingAddr, shippingPhone, sameAddr };
   // FIX: keep sales/quotation/order records referencing this customer by name in sync
   if (oldName !== name) {
     if (typeof sales !== 'undefined') sales.forEach(s => { if (s.customer === oldName) s.customer = name; });
@@ -1383,17 +1452,19 @@ function loadCustomers() {
   const tb = document.querySelector('#ctable tbody');
   const sel = document.getElementById('scustomer');
   if (!customers.length) {
-    tb.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="e-icon">👥</div><p>No customers yet</p></div></td></tr>`;
+    tb.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="e-icon">👥</div><p>No customers yet</p></div></td></tr>`;
     sel.innerHTML = '<option value="">Walk-in Customer</option>';
     return;
   }
   tb.innerHTML = customers.map((c,i) => {
     const typeBadge = c.type==='VIP'?'badge-yellow':c.type==='Wholesale'?'badge-purple':'badge-blue';
+    const addrTitle = [c.billingAddr?`Billing: ${c.billingAddr}`:'', c.shippingAddr && c.shippingAddr!==c.billingAddr?`Shipping: ${c.shippingAddr}`:''].filter(Boolean).join(' | ');
     return `<tr>
-      <td><strong>${esc(c.name)}</strong></td>
+      <td><strong${addrTitle?` title="${esc(addrTitle)}"`:''}>${esc(c.name)}</strong></td>
       <td>${esc(c.phone||'—')}</td>
       <td>${esc(c.email||'—')}</td>
       <td><span class="badge ${typeBadge}">${esc(c.type)}</span></td>
+      <td>${c.gstin?`<span class="badge badge-blue">${esc(c.gstin)}</span>`:'—'}</td>
       <td>${c.joined}</td>
       <td><div class="action-cell">
         <button class="btn btn-warn btn-sm" onclick="editCustomer(${i})">Edit</button>
@@ -1811,6 +1882,8 @@ function invoiceHTML(record, type) {
   const isPurchase= type === 'purchase';
   const partyLbl  = isQuote ? 'Quotation For (Customer)' : isSale ? 'Bill To (Customer)' : 'Vendor (Bill From)';
   const party     = isQuote ? record.customer : isSale ? record.customer : record.vendor;
+  const custObj   = (isSale || isQuote) ? (customers||[]).find(c => c.name === record.customer) : null;
+  const hasShipTo = custObj && custObj.shippingAddr && custObj.shippingAddr.trim() && custObj.shippingAddr.trim() !== (custObj.billingAddr||'').trim();
   const items     = itemsOf(record, type);
   const itemRows  = items.map((it,idx) => {
     const nm   = isPurchase ? it.item : it.name;
@@ -1856,6 +1929,9 @@ function invoiceHTML(record, type) {
         <td style="width:55%;border:1px solid #cbd5e1;padding:10px;vertical-align:top">
           <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:#64748b;font-weight:700;margin-bottom:6px">${partyLbl}</div>
           <div style="font-weight:700;font-size:14px">${esc(party||'—')}</div>
+          ${custObj && custObj.billingAddr ? `<div style="font-size:11px;color:#475569;margin-top:4px;white-space:pre-line">${esc(custObj.billingAddr)}</div>` : ''}
+          ${custObj && (custObj.billingPhone || custObj.phone) ? `<div style="font-size:11px;color:#475569;margin-top:2px">Ph: ${esc(custObj.billingPhone || custObj.phone)}</div>` : ''}
+          ${custObj && custObj.gstin ? `<div style="font-size:11px;color:#475569;margin-top:2px">GSTIN: <strong>${esc(custObj.gstin)}</strong></div>` : ''}
         </td>
         <td style="width:45%;border:1px solid #cbd5e1;padding:10px;vertical-align:top">
           <table style="width:100%;font-size:12px;border-collapse:collapse">
@@ -1869,6 +1945,17 @@ function invoiceHTML(record, type) {
         </td>
       </tr>
     </table>
+
+    ${hasShipTo ? `
+    <table style="width:100%;border-collapse:collapse;margin-bottom:16px;font-size:12px">
+      <tr>
+        <td style="border:1px solid #cbd5e1;padding:10px;vertical-align:top">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:#64748b;font-weight:700;margin-bottom:6px">Ship To</div>
+          <div style="font-size:12px;white-space:pre-line">${esc(custObj.shippingAddr)}</div>
+          ${custObj.shippingPhone ? `<div style="font-size:11px;color:#475569;margin-top:2px">Ph: ${esc(custObj.shippingPhone)}</div>` : ''}
+        </td>
+      </tr>
+    </table>` : ''}
 
     <table style="width:100%;border-collapse:collapse;margin-bottom:16px;font-size:12px">
       <thead>
