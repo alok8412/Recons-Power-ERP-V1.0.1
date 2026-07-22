@@ -501,6 +501,11 @@ tbody tr:last-child td { border-bottom: none; }
             <div class="form-group"><label>Email</label><input id="vemail" type="email" placeholder="e.g. vendor@email.com"></div>
             <div class="form-group" style="max-width:140px"><label>Category</label>
               <select id="vcat"><option>Raw Materials</option><option>Finished Goods</option><option>Services</option><option>Other</option></select></div>
+          </div>
+          <div class="form-row" style="margin-top:10px">
+            <div class="form-group"><label>Vendor Address</label><input id="vaddress" placeholder="e.g. Plot 12, Industrial Area, Delhi"></div>
+            <div class="form-group"><label>Dispatch Warehouse Location</label><input id="vwarehouse" placeholder="e.g. Warehouse 3, Manesar"></div>
+            <div class="form-group"><label>GST No. <span style="text-transform:none;font-weight:400">(optional)</span></label><input id="vgst" placeholder="e.g. 22AAAAA0000A1Z5" maxlength="15"></div>
             <button class="btn btn-accent" style="margin-top:16px" onclick="addVendor()">+ Add</button>
           </div>
         </div>
@@ -512,7 +517,7 @@ tbody tr:last-child td { border-bottom: none; }
           </div>
           <div class="table-wrap">
             <table id="vtable">
-              <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Category</th><th>Added</th><th>Actions</th></tr></thead>
+              <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Category</th><th>Address</th><th>Dispatch Warehouse</th><th>GST No.</th><th>Added</th><th>Actions</th></tr></thead>
               <tbody></tbody>
             </table>
           </div>
@@ -1154,6 +1159,9 @@ tbody tr:last-child td { border-bottom: none; }
       <div class="form-group"><label>Email</label><input id="evEmail" type="email"></div>
       <div class="form-group"><label>Category</label>
         <select id="evCat"><option>Raw Materials</option><option>Finished Goods</option><option>Services</option><option>Other</option></select></div>
+      <div class="form-group"><label>Vendor Address</label><input id="evAddress" placeholder="e.g. Plot 12, Industrial Area, Delhi"></div>
+      <div class="form-group"><label>Dispatch Warehouse Location</label><input id="evWarehouse" placeholder="e.g. Warehouse 3, Manesar"></div>
+      <div class="form-group"><label>GST No. <span style="text-transform:none;font-weight:400">(optional)</span></label><input id="evGst" placeholder="e.g. 22AAAAA0000A1Z5" maxlength="15"></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('editVendorModal')">Cancel</button>
@@ -1890,15 +1898,19 @@ function loadCustomers() {
 
 // ===== VENDORS =====
 function addVendor() {
-  const name  = document.getElementById('vname').value.trim();
-  const phone = document.getElementById('vphone').value.trim();
-  const email = document.getElementById('vemail').value.trim();
-  const cat   = document.getElementById('vcat').value;
+  const name      = document.getElementById('vname').value.trim();
+  const phone     = document.getElementById('vphone').value.trim();
+  const email     = document.getElementById('vemail').value.trim();
+  const cat       = document.getElementById('vcat').value;
+  const address   = document.getElementById('vaddress').value.trim();
+  const warehouse = document.getElementById('vwarehouse').value.trim();
+  const gst       = document.getElementById('vgst').value.trim().toUpperCase();
   if (!validateRequired([[name,'Vendor Name']])) return;
   if (phone && !/^\d{10}$/.test(phone)) { showToast('⚠️ Phone must be 10 digits', 'error'); return; }
+  if (gst && !/^[0-9]{2}[A-Z0-9]{10}[0-9][A-Z][0-9A-Z]$/.test(gst)) { showToast('⚠️ Enter a valid 15-character GST No.', 'error'); return; }
   if (vendors.find(v => v.name.toLowerCase() === name.toLowerCase())) { showToast('⚠️ Vendor already exists', 'error'); return; }
-  vendors.push({ name, phone, email, cat, added: new Date().toLocaleDateString() });
-  ['vname','vphone','vemail'].forEach(id => document.getElementById(id).value='');
+  vendors.push({ name, phone, email, cat, address, warehouse, gst, added: new Date().toLocaleDateString() });
+  ['vname','vphone','vemail','vaddress','vwarehouse','vgst'].forEach(id => document.getElementById(id).value='');
   save();
   showToast(`✅ Vendor "${name}" added!`);
 }
@@ -1913,23 +1925,30 @@ function delVendor(i) {
 function editVendor(i) {
   const v = vendors[i];
   if (!v) return;
-  document.getElementById('evIndex').value = i;
-  document.getElementById('evName').value  = v.name;
-  document.getElementById('evPhone').value = v.phone || '';
-  document.getElementById('evEmail').value = v.email || '';
-  document.getElementById('evCat').value   = v.cat || 'Other';
+  document.getElementById('evIndex').value     = i;
+  document.getElementById('evName').value      = v.name;
+  document.getElementById('evPhone').value     = v.phone || '';
+  document.getElementById('evEmail').value     = v.email || '';
+  document.getElementById('evCat').value       = v.cat || 'Other';
+  document.getElementById('evAddress').value   = v.address || '';
+  document.getElementById('evWarehouse').value = v.warehouse || '';
+  document.getElementById('evGst').value       = v.gst || '';
   document.getElementById('editVendorModal').classList.add('open');
 }
 
 function saveVendorEdit() {
-  const i     = Number(document.getElementById('evIndex').value);
-  const name  = document.getElementById('evName').value.trim();
-  const phone = document.getElementById('evPhone').value.trim();
-  const email = document.getElementById('evEmail').value.trim();
-  const cat   = document.getElementById('evCat').value;
+  const i         = Number(document.getElementById('evIndex').value);
+  const name      = document.getElementById('evName').value.trim();
+  const phone     = document.getElementById('evPhone').value.trim();
+  const email     = document.getElementById('evEmail').value.trim();
+  const cat       = document.getElementById('evCat').value;
+  const address   = document.getElementById('evAddress').value.trim();
+  const warehouse = document.getElementById('evWarehouse').value.trim();
+  const gst       = document.getElementById('evGst').value.trim().toUpperCase();
   if (!validateRequired([[name,'Vendor Name']])) return;
   if (phone && !/^\d{10}$/.test(phone)) { showToast('⚠️ Phone must be 10 digits', 'error'); return; }
-  vendors[i] = { ...vendors[i], name, phone, email, cat };
+  if (gst && !/^[0-9]{2}[A-Z0-9]{10}[0-9][A-Z][0-9A-Z]$/.test(gst)) { showToast('⚠️ Enter a valid 15-character GST No.', 'error'); return; }
+  vendors[i] = { ...vendors[i], name, phone, email, cat, address, warehouse, gst };
   closeModal('editVendorModal');
   save();
   showToast('✅ Vendor updated!');
@@ -1939,7 +1958,7 @@ function loadVendors() {
   const tb  = document.querySelector('#vtable tbody');
   const sel = document.getElementById('puVendor');
   if (!vendors.length) {
-    tb.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="e-icon">🏭</div><p>No vendors yet</p></div></td></tr>`;
+    tb.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="e-icon">🏭</div><p>No vendors yet</p></div></td></tr>`;
     if (sel) sel.innerHTML = '<option value="">— Select Vendor —</option>';
     return;
   }
@@ -1949,6 +1968,9 @@ function loadVendors() {
     <td>${esc(v.phone||'—')}</td>
     <td>${esc(v.email||'—')}</td>
     <td><span class="badge ${catBadge(v.cat)}">${esc(v.cat||'Other')}</span></td>
+    <td>${esc(v.address||'—')}</td>
+    <td>${esc(v.warehouse||'—')}</td>
+    <td>${esc(v.gst||'—')}</td>
     <td>${v.added||'—'}</td>
     <td><div class="action-cell">
       <button class="btn btn-warn btn-sm" onclick="editVendor(${i})">Edit</button>
