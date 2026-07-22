@@ -857,7 +857,7 @@ tbody tr:last-child td { border-bottom: none; }
             <div class="card"><div class="card-title">2 · Upload CSV</div><div class="drop-zone" id="dz_products" onclick="document.getElementById('csv_products').click()" ondragover="dzOver(event,'dz_products')" ondragleave="dzLeave('dz_products')" ondrop="dzDrop(event,'products')"><div class="dz-icon">📁</div><div class="dz-text">Click or drag &amp; drop CSV here</div><div class="dz-hint">.csv files only</div></div><input type="file" id="csv_products" accept=".csv" style="display:none" onchange="handleCSV(event,'products')"></div>
           </div>
           <div class="card" id="preview_products" style="display:none">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="card-title" style="margin:0">3 · Preview &amp; Confirm</div><div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="clearImport('products')">✕ Clear</button><button class="btn btn-success" onclick="confirmImport('products')">✅ Import All</button></div></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="card-title" style="margin:0">3 · Preview &amp; Confirm</div><div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="clearImport('products')">✕ Clear</button><button class="btn btn-outline btn-sm" id="errBtn_products" style="display:none" onclick="downloadErrorRows('products')">⬇ Error Rows</button><button class="btn btn-success" onclick="confirmImport('products')">✅ Import All</button></div></div>
             <div id="preview_status_products" style="margin-bottom:10px;font-size:13px"></div>
             <div class="table-wrap"><table id="preview_table_products"></table></div>
           </div>
@@ -868,7 +868,7 @@ tbody tr:last-child td { border-bottom: none; }
             <div class="card"><div class="card-title">2 · Upload CSV</div><div class="drop-zone" id="dz_customers" onclick="document.getElementById('csv_customers').click()" ondragover="dzOver(event,'dz_customers')" ondragleave="dzLeave('dz_customers')" ondrop="dzDrop(event,'customers')"><div class="dz-icon">📁</div><div class="dz-text">Click or drag &amp; drop CSV here</div><div class="dz-hint">.csv files only</div></div><input type="file" id="csv_customers" accept=".csv" style="display:none" onchange="handleCSV(event,'customers')"></div>
           </div>
           <div class="card" id="preview_customers" style="display:none">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="card-title" style="margin:0">3 · Preview &amp; Confirm</div><div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="clearImport('customers')">✕ Clear</button><button class="btn btn-success" onclick="confirmImport('customers')">✅ Import All</button></div></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="card-title" style="margin:0">3 · Preview &amp; Confirm</div><div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="clearImport('customers')">✕ Clear</button><button class="btn btn-outline btn-sm" id="errBtn_customers" style="display:none" onclick="downloadErrorRows('customers')">⬇ Error Rows</button><button class="btn btn-success" onclick="confirmImport('customers')">✅ Import All</button></div></div>
             <div id="preview_status_customers" style="margin-bottom:10px;font-size:13px"></div>
             <div class="table-wrap"><table id="preview_table_customers"></table></div>
           </div>
@@ -879,7 +879,7 @@ tbody tr:last-child td { border-bottom: none; }
             <div class="card"><div class="card-title">2 · Upload CSV</div><div class="drop-zone" id="dz_sales" onclick="document.getElementById('csv_sales').click()" ondragover="dzOver(event,'dz_sales')" ondragleave="dzLeave('dz_sales')" ondrop="dzDrop(event,'sales')"><div class="dz-icon">📁</div><div class="dz-text">Click or drag &amp; drop CSV here</div><div class="dz-hint">.csv files only</div></div><input type="file" id="csv_sales" accept=".csv" style="display:none" onchange="handleCSV(event,'sales')"></div>
           </div>
           <div class="card" id="preview_sales" style="display:none">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="card-title" style="margin:0">3 · Preview &amp; Confirm</div><div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="clearImport('sales')">✕ Clear</button><button class="btn btn-success" onclick="confirmImport('sales')">✅ Import All</button></div></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="card-title" style="margin:0">3 · Preview &amp; Confirm</div><div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="clearImport('sales')">✕ Clear</button><button class="btn btn-outline btn-sm" id="errBtn_sales" style="display:none" onclick="downloadErrorRows('sales')">⬇ Error Rows</button><button class="btn btn-success" onclick="confirmImport('sales')">✅ Import All</button></div></div>
             <div id="preview_status_sales" style="margin-bottom:10px;font-size:13px"></div>
             <div class="table-wrap"><table id="preview_table_sales"></table></div>
           </div>
@@ -890,7 +890,7 @@ tbody tr:last-child td { border-bottom: none; }
             <div class="card"><div class="card-title">2 · Upload CSV</div><div class="drop-zone" id="dz_expenses" onclick="document.getElementById('csv_expenses').click()" ondragover="dzOver(event,'dz_expenses')" ondragleave="dzLeave('dz_expenses')" ondrop="dzDrop(event,'expenses')"><div class="dz-icon">📁</div><div class="dz-text">Click or drag &amp; drop CSV here</div><div class="dz-hint">.csv files only</div></div><input type="file" id="csv_expenses" accept=".csv" style="display:none" onchange="handleCSV(event,'expenses')"></div>
           </div>
           <div class="card" id="preview_expenses" style="display:none">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="card-title" style="margin:0">3 · Preview &amp; Confirm</div><div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="clearImport('expenses')">✕ Clear</button><button class="btn btn-success" onclick="confirmImport('expenses')">✅ Import All</button></div></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="card-title" style="margin:0">3 · Preview &amp; Confirm</div><div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="clearImport('expenses')">✕ Clear</button><button class="btn btn-outline btn-sm" id="errBtn_expenses" style="display:none" onclick="downloadErrorRows('expenses')">⬇ Error Rows</button><button class="btn btn-success" onclick="confirmImport('expenses')">✅ Import All</button></div></div>
             <div id="preview_status_expenses" style="margin-bottom:10px;font-size:13px"></div>
             <div class="table-wrap"><table id="preview_table_expenses"></table></div>
           </div>
@@ -901,7 +901,7 @@ tbody tr:last-child td { border-bottom: none; }
             <div class="card"><div class="card-title">2 · Upload CSV</div><div class="drop-zone" id="dz_employees" onclick="document.getElementById('csv_employees').click()" ondragover="dzOver(event,'dz_employees')" ondragleave="dzLeave('dz_employees')" ondrop="dzDrop(event,'employees')"><div class="dz-icon">📁</div><div class="dz-text">Click or drag &amp; drop CSV here</div><div class="dz-hint">.csv files only</div></div><input type="file" id="csv_employees" accept=".csv" style="display:none" onchange="handleCSV(event,'employees')"></div>
           </div>
           <div class="card" id="preview_employees" style="display:none">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="card-title" style="margin:0">3 · Preview &amp; Confirm</div><div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="clearImport('employees')">✕ Clear</button><button class="btn btn-success" onclick="confirmImport('employees')">✅ Import All</button></div></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="card-title" style="margin:0">3 · Preview &amp; Confirm</div><div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="clearImport('employees')">✕ Clear</button><button class="btn btn-outline btn-sm" id="errBtn_employees" style="display:none" onclick="downloadErrorRows('employees')">⬇ Error Rows</button><button class="btn btn-success" onclick="confirmImport('employees')">✅ Import All</button></div></div>
             <div id="preview_status_employees" style="margin-bottom:10px;font-size:13px"></div>
             <div class="table-wrap"><table id="preview_table_employees"></table></div>
           </div>
@@ -912,7 +912,7 @@ tbody tr:last-child td { border-bottom: none; }
             <div class="card"><div class="card-title">2 · Upload CSV</div><div class="drop-zone" id="dz_attendance" onclick="document.getElementById('csv_attendance').click()" ondragover="dzOver(event,'dz_attendance')" ondragleave="dzLeave('dz_attendance')" ondrop="dzDrop(event,'attendance')"><div class="dz-icon">📁</div><div class="dz-text">Click or drag &amp; drop CSV here</div><div class="dz-hint">.csv files only</div></div><input type="file" id="csv_attendance" accept=".csv" style="display:none" onchange="handleCSV(event,'attendance')"></div>
           </div>
           <div class="card" id="preview_attendance" style="display:none">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="card-title" style="margin:0">3 · Preview &amp; Confirm</div><div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="clearImport('attendance')">✕ Clear</button><button class="btn btn-success" onclick="confirmImport('attendance')">✅ Import All</button></div></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="card-title" style="margin:0">3 · Preview &amp; Confirm</div><div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="clearImport('attendance')">✕ Clear</button><button class="btn btn-outline btn-sm" id="errBtn_attendance" style="display:none" onclick="downloadErrorRows('attendance')">⬇ Error Rows</button><button class="btn btn-success" onclick="confirmImport('attendance')">✅ Import All</button></div></div>
             <div id="preview_status_attendance" style="margin-bottom:10px;font-size:13px"></div>
             <div class="table-wrap"><table id="preview_table_attendance"></table></div>
           </div>
@@ -923,7 +923,7 @@ tbody tr:last-child td { border-bottom: none; }
             <div class="card"><div class="card-title">2 · Upload CSV</div><div class="drop-zone" id="dz_leave" onclick="document.getElementById('csv_leave').click()" ondragover="dzOver(event,'dz_leave')" ondragleave="dzLeave('dz_leave')" ondrop="dzDrop(event,'leave')"><div class="dz-icon">📁</div><div class="dz-text">Click or drag &amp; drop CSV here</div><div class="dz-hint">.csv files only</div></div><input type="file" id="csv_leave" accept=".csv" style="display:none" onchange="handleCSV(event,'leave')"></div>
           </div>
           <div class="card" id="preview_leave" style="display:none">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="card-title" style="margin:0">3 · Preview &amp; Confirm</div><div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="clearImport('leave')">✕ Clear</button><button class="btn btn-success" onclick="confirmImport('leave')">✅ Import All</button></div></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="card-title" style="margin:0">3 · Preview &amp; Confirm</div><div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="clearImport('leave')">✕ Clear</button><button class="btn btn-outline btn-sm" id="errBtn_leave" style="display:none" onclick="downloadErrorRows('leave')">⬇ Error Rows</button><button class="btn btn-success" onclick="confirmImport('leave')">✅ Import All</button></div></div>
             <div id="preview_status_leave" style="margin-bottom:10px;font-size:13px"></div>
             <div class="table-wrap"><table id="preview_table_leave"></table></div>
           </div>
@@ -934,7 +934,7 @@ tbody tr:last-child td { border-bottom: none; }
             <div class="card"><div class="card-title">2 · Upload CSV</div><div class="drop-zone" id="dz_payroll" onclick="document.getElementById('csv_payroll').click()" ondragover="dzOver(event,'dz_payroll')" ondragleave="dzLeave('dz_payroll')" ondrop="dzDrop(event,'payroll')"><div class="dz-icon">📁</div><div class="dz-text">Click or drag &amp; drop CSV here</div><div class="dz-hint">.csv files only</div></div><input type="file" id="csv_payroll" accept=".csv" style="display:none" onchange="handleCSV(event,'payroll')"></div>
           </div>
           <div class="card" id="preview_payroll" style="display:none">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="card-title" style="margin:0">3 · Preview &amp; Confirm</div><div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="clearImport('payroll')">✕ Clear</button><button class="btn btn-success" onclick="confirmImport('payroll')">✅ Import All</button></div></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="card-title" style="margin:0">3 · Preview &amp; Confirm</div><div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="clearImport('payroll')">✕ Clear</button><button class="btn btn-outline btn-sm" id="errBtn_payroll" style="display:none" onclick="downloadErrorRows('payroll')">⬇ Error Rows</button><button class="btn btn-success" onclick="confirmImport('payroll')">✅ Import All</button></div></div>
             <div id="preview_status_payroll" style="margin-bottom:10px;font-size:13px"></div>
             <div class="table-wrap"><table id="preview_table_payroll"></table></div>
           </div>
@@ -3193,20 +3193,35 @@ function parseAndPreview(text, type) {
   const required = TEMPLATES[type].headers;
   const missing = required.filter(r=>!headers.includes(r));
   if (missing.length) { showToast(`⚠️ Missing columns: ${missing.join(', ')}`, 'error'); return; }
+  // FIX: track names seen earlier in this same CSV to catch duplicates within the file itself
+  const seenInFile = new Set();
   const validated = rows.map((row,i) => {
     const errors=[];
     if (type==='products') {
       if (!row.name) errors.push('name required');
       if (isNaN(Number(row.qty))||Number(row.qty)<0) errors.push('invalid qty');
       if (isNaN(Number(row.price))||Number(row.price)<=0) errors.push('invalid price');
+      if (row.name) {
+        const key = row.name.toLowerCase();
+        if (products.find(p=>p.name.toLowerCase()===key)) errors.push('product already exists');
+        else if (seenInFile.has('p:'+key)) errors.push('duplicate row in this file');
+        seenInFile.add('p:'+key);
+      }
     }
     if (type==='customers') {
       if (!row.name) errors.push('name required');
       if (row.phone&&!/^\d{10}$/.test(row.phone)) errors.push('phone must be 10 digits');
+      if (row.name) {
+        const key = row.name.toLowerCase();
+        if (customers.find(c=>c.name.toLowerCase()===key)) errors.push('customer already exists');
+        else if (seenInFile.has('c:'+key)) errors.push('duplicate row in this file');
+        seenInFile.add('c:'+key);
+      }
     }
     if (type==='sales') {
       if (!row.product_name) errors.push('product_name required');
       if (isNaN(Number(row.qty))||Number(row.qty)<=0) errors.push('invalid qty');
+      if (row.product_name && !products.find(p=>p.name.toLowerCase()===row.product_name.toLowerCase())) errors.push('unknown product');
     }
     if (type==='expenses') {
       if (!row.description) errors.push('description required');
@@ -3217,13 +3232,23 @@ function parseAndPreview(text, type) {
       if (!row.designation) errors.push('designation required');
       if (isNaN(Number(row.salary))||Number(row.salary)<=0) errors.push('invalid salary');
       if (row.phone && !/^\d{10}$/.test(row.phone)) errors.push('phone must be 10 digits');
-      if (employees.find(e=>e.name.toLowerCase()===String(row.name).toLowerCase())) errors.push('employee already exists');
+      if (row.name) {
+        const key = row.name.toLowerCase();
+        if (employees.find(e=>e.name.toLowerCase()===key)) errors.push('employee already exists');
+        else if (seenInFile.has('e:'+key)) errors.push('duplicate row in this file');
+        seenInFile.add('e:'+key);
+      }
     }
     if (type==='attendance') {
       if (!row.employee) errors.push('employee required');
       else if (!employees.find(e=>e.name.toLowerCase()===row.employee.toLowerCase())) errors.push('unknown employee');
       if (!row.date) errors.push('date required');
       if (row.status && !['Present','Absent','Half Day','On Leave'].includes(row.status)) errors.push('invalid status');
+      if (row.employee && row.date) {
+        const key = row.employee.toLowerCase()+'|'+row.date;
+        if (seenInFile.has('a:'+key)) errors.push('duplicate row in this file (same employee+date)');
+        seenInFile.add('a:'+key);
+      }
     }
     if (type==='leave') {
       if (!row.employee) errors.push('employee required');
@@ -3236,6 +3261,12 @@ function parseAndPreview(text, type) {
       else if (!employees.find(e=>e.name.toLowerCase()===row.employee.toLowerCase())) errors.push('unknown employee');
       if (!row.month) errors.push('month required');
       if (row.deductions && isNaN(Number(row.deductions))) errors.push('invalid deductions');
+      if (row.employee && row.month) {
+        const key = row.employee.toLowerCase()+'|'+row.month;
+        if (payroll.find(p=>p.emp.toLowerCase()===row.employee.toLowerCase() && p.month===row.month)) errors.push('payroll already generated for this month');
+        else if (seenInFile.has('pr:'+key)) errors.push('duplicate row in this file (same employee+month)');
+        seenInFile.add('pr:'+key);
+      }
     }
     return {...row, _row:i+2, _errors:errors, _ok:errors.length===0};
   });
@@ -3254,8 +3285,29 @@ function parseAndPreview(text, type) {
   document.getElementById('preview_status_'+type).innerHTML=
     `<span class="badge badge-green">✓ ${ok} valid rows</span>&nbsp;`+
     (err?`<span class="badge badge-red">✕ ${err} rows with errors (will be skipped)</span>`:'');
+  const errBtn = document.getElementById('errBtn_'+type);
+  if (errBtn) errBtn.style.display = err ? '' : 'none';
   document.getElementById('preview_'+type).style.display='block';
   document.getElementById('preview_'+type).scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function downloadErrorRows(type) {
+  const rows = (importPreviews[type]||[]).filter(r=>!r._ok);
+  if (!rows.length) { showToast('No error rows to download', 'error'); return; }
+  const headers = [...TEMPLATES[type].headers, 'error_reason'];
+  const csvRows = [headers.join(',')];
+  rows.forEach(r => {
+    const vals = TEMPLATES[type].headers.map(h => `"${String(r[h]||'').replace(/"/g,'""')}"`);
+    vals.push(`"${r._errors.join('; ').replace(/"/g,'""')}"`);
+    csvRows.push(vals.join(','));
+  });
+  const blob = new Blob([csvRows.join('\n')], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `${type}_error_rows.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  showToast(`⬇️ Downloaded ${rows.length} error row(s)`);
 }
 
 function clearImport(type) {
