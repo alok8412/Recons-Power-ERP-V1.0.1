@@ -22,9 +22,10 @@
   --radius: 12px;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
-#loginPage { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse at 30% 50%, #0e2a4a 0%, var(--bg) 60%); }
-.login-box { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 48px 40px; width: 360px; box-shadow: 0 25px 60px rgba(0,0,0,0.5); animation: fadeUp 0.5s ease; }
+html { width: 100%; overflow-x: hidden; }
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; width: 100%; overflow-x: hidden; }
+#loginPage { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse at 30% 50%, #0e2a4a 0%, var(--bg) 60%); padding: 16px; }
+.login-box { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 48px 40px; width: 360px; max-width: 100%; box-shadow: 0 25px 60px rgba(0,0,0,0.5); animation: fadeUp 0.5s ease; }
 .login-logo { font-family: 'Space Mono', monospace; font-size: 22px; color: var(--accent); margin-bottom: 8px; letter-spacing: -1px; }
 .login-box p { color: var(--muted); font-size: 14px; margin-bottom: 32px; }
 .login-box label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; margin-top: 16px; }
@@ -140,6 +141,21 @@ tbody tr:last-child td { border-bottom: none; }
 .empty-state p { font-size: 14px; }
 .hamburger { display: none; position: fixed; top: 16px; left: 16px; z-index: 200; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; cursor: pointer; font-size: 18px; color: var(--text); }
 @media (max-width: 768px) { .sidebar { transform: translateX(-100%); } .sidebar.open { transform: translateX(0); } .main { margin-left: 0; padding: 16px; padding-top: 60px; } .hamburger { display: block; } .stats-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 480px) {
+  .login-box { padding: 32px 22px; border-radius: 14px; }
+  .main { padding: 12px; padding-top: 56px; }
+  .page-header h1 { font-size: 20px; }
+  .page-header p { font-size: 13px; }
+  .card { padding: 14px; }
+  .stats-grid { grid-template-columns: 1fr; gap: 12px; }
+  .stat-card { padding: 14px; }
+  .stat-value { font-size: 22px; }
+  .form-group { min-width: 100%; }
+  .modal { padding: 18px; border-radius: 12px; }
+  .modal-footer { flex-wrap: wrap; }
+  .modal-footer .btn { flex: 1; }
+  .btn { padding: 10px 14px; font-size: 13px; }
+}
 .export-row { display: flex; gap: 8px; justify-content: flex-end; margin-bottom: 12px; }
 .drop-zone { border: 2px dashed var(--border); border-radius: 10px; padding: 32px 20px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--bg); margin-top: 8px; }
 .drop-zone:hover, .drop-zone.over { border-color: var(--accent); background: rgba(34,211,238,0.05); }
@@ -620,8 +636,15 @@ tbody tr:last-child td { border-bottom: none; }
             <div class="form-group" style="max-width:160px"><label>Date</label><input id="atDate" type="date"></div>
             <div class="form-group" style="max-width:150px"><label>Status</label>
               <select id="atStatus"><option>Present</option><option>Absent</option><option>Half Day</option><option>On Leave</option></select></div>
+          </div>
+          <div class="form-row" style="margin-top:10px">
+            <div class="form-group" style="max-width:150px"><label>In Time</label><input id="atInTime" type="time"></div>
+            <button class="btn btn-outline btn-sm" style="margin-top:16px" onclick="setNowTime('atInTime')">⏱ Clock In Now</button>
+            <div class="form-group" style="max-width:150px"><label>Out Time</label><input id="atOutTime" type="time"></div>
+            <button class="btn btn-outline btn-sm" style="margin-top:16px" onclick="setNowTime('atOutTime')">⏱ Clock Out Now</button>
             <button class="btn btn-accent" style="margin-top:16px" onclick="markAttendance()">+ Mark Attendance</button>
           </div>
+          <p style="font-size:12px;color:var(--muted);margin-top:10px">In/Out time are optional — work hours are calculated automatically when both are filled.</p>
         </div>
         <div class="card">
           <div class="card-title">Attendance Log</div>
@@ -634,7 +657,7 @@ tbody tr:last-child td { border-bottom: none; }
           </div>
           <div class="table-wrap">
             <table id="attable">
-              <thead><tr><th>Employee</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+              <thead><tr><th>Employee</th><th>Date</th><th>Status</th><th>In Time</th><th>Out Time</th><th>Work Hours</th><th>Actions</th></tr></thead>
               <tbody></tbody>
             </table>
           </div>
@@ -885,7 +908,7 @@ tbody tr:last-child td { border-bottom: none; }
         </div>
         <div id="imp_attendance" style="display:none">
           <div class="two-col">
-            <div class="card"><div class="card-title">1 · Download Template</div><p style="font-size:13px;color:var(--muted);margin-bottom:14px">Required columns: <code style="background:var(--surface2);padding:2px 6px;border-radius:4px;font-size:12px">employee, date, status</code> — employee must match an existing Employee name</p><button class="btn btn-outline" onclick="downloadTemplate('attendance')">⬇ Attendance Template</button></div>
+            <div class="card"><div class="card-title">1 · Download Template</div><p style="font-size:13px;color:var(--muted);margin-bottom:14px">Required columns: <code style="background:var(--surface2);padding:2px 6px;border-radius:4px;font-size:12px">employee, date, status</code>, optional: <code style="background:var(--surface2);padding:2px 6px;border-radius:4px;font-size:12px">in_time, out_time</code> (HH:MM) — employee must match an existing Employee name</p><button class="btn btn-outline" onclick="downloadTemplate('attendance')">⬇ Attendance Template</button></div>
             <div class="card"><div class="card-title">2 · Upload CSV</div><div class="drop-zone" id="dz_attendance" onclick="document.getElementById('csv_attendance').click()" ondragover="dzOver(event,'dz_attendance')" ondragleave="dzLeave('dz_attendance')" ondrop="dzDrop(event,'attendance')"><div class="dz-icon">📁</div><div class="dz-text">Click or drag &amp; drop CSV here</div><div class="dz-hint">.csv files only</div></div><input type="file" id="csv_attendance" accept=".csv" style="display:none" onchange="handleCSV(event,'attendance')"></div>
           </div>
           <div class="card" id="preview_attendance" style="display:none">
@@ -3104,7 +3127,7 @@ const TEMPLATES = {
   sales:     { headers:['product_name','customer','qty','date'],      sample:[['Widget A','Rahul Sharma','2','2025-04-10'],['T-Shirt Blue','Walk-in','5','2025-04-11']] },
   expenses:  { headers:['description','category','amount','date'],    sample:[['Office Rent','Rent','15000','2025-04-01'],['Staff Salary','Salaries','30000','2025-04-01']] },
   employees:  { headers:['name','designation','department','phone','email','salary','join_date','status'], sample:[['Priya Verma','Sales Executive','Sales','9876543210','priya@company.com','35000','2025-01-15','Active'],['Rohit Nair','Accountant','Finance','9123456780','rohit@company.com','40000','2025-02-01','Active']] },
-  attendance: { headers:['employee','date','status'],                 sample:[['Priya Verma','2025-04-10','Present'],['Rohit Nair','2025-04-10','Absent']] },
+  attendance: { headers:['employee','date','status','in_time','out_time'],  sample:[['Priya Verma','2025-04-10','Present','09:30','18:30'],['Rohit Nair','2025-04-10','Absent','','']] },
   leave:      { headers:['employee','from','to','reason','status'],   sample:[['Priya Verma','2025-04-15','2025-04-16','Family function','Pending'],['Rohit Nair','2025-04-20','2025-04-20','Medical','Approved']] },
   payroll:    { headers:['employee','month','deductions'],            sample:[['Priya Verma','2025-04','1000'],['Rohit Nair','2025-04','0']] }
 };
@@ -3293,10 +3316,13 @@ function confirmImport(type) {
     rows.forEach(r => {
       const emp = employees.find(e=>e.name.toLowerCase()===r.employee.toLowerCase());
       if (!emp) return;
-      const status = r.status || 'Present';
+      const status  = r.status || 'Present';
+      const inTime   = r.in_time || '';
+      const outTime  = r.out_time || '';
+      const hours    = calcWorkHours(inTime, outTime);
       const existing = attendance.find(a=>a.emp===emp.name && a.date===r.date);
-      if (existing) existing.status = status;
-      else attendance.push({emp:emp.name,date:r.date,status});
+      if (existing) Object.assign(existing, { status, inTime, outTime, hours });
+      else attendance.push({emp:emp.name,date:r.date,status,inTime,outTime,hours});
       imported++;
     });
   }
@@ -3594,15 +3620,37 @@ function loadEmployees() {
 }
 
 // ===== HRMS: ATTENDANCE =====
+function setNowTime(id) {
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2,'0');
+  const mm = String(now.getMinutes()).padStart(2,'0');
+  document.getElementById(id).value = `${hh}:${mm}`;
+}
+
+function calcWorkHours(inTime, outTime) {
+  if (!inTime || !outTime) return null;
+  const [ih,im] = inTime.split(':').map(Number);
+  const [oh,om] = outTime.split(':').map(Number);
+  let mins = (oh*60+om) - (ih*60+im);
+  if (mins < 0) mins += 24*60; // handles overnight shifts
+  return Math.round((mins/60)*100)/100;
+}
+
 function markAttendance() {
-  const emp    = document.getElementById('atEmployee').value;
-  const date   = document.getElementById('atDate').value;
-  const status = document.getElementById('atStatus').value || 'Present';
+  const emp     = document.getElementById('atEmployee').value;
+  const date    = document.getElementById('atDate').value;
+  const status  = document.getElementById('atStatus').value || 'Present';
+  const inTime  = document.getElementById('atInTime').value;
+  const outTime = document.getElementById('atOutTime').value;
   if (!emp) { showToast('⚠️ Select an employee', 'error'); return; }
   if (!date) { showToast('⚠️ Select a date', 'error'); return; }
+  if (inTime && outTime && calcWorkHours(inTime,outTime) === 0) { showToast('⚠️ Out time cannot be the same as In time', 'error'); return; }
+  const hours = calcWorkHours(inTime, outTime);
   const existing = attendance.find(a => a.emp === emp && a.date === date);
-  if (existing) { existing.status = status; showToast(`✅ Attendance updated for ${emp}`); }
-  else { attendance.push({ emp, date, status }); showToast(`✅ Attendance marked for ${emp}`); }
+  if (existing) { Object.assign(existing, { status, inTime, outTime, hours }); showToast(`✅ Attendance updated for ${emp}`); }
+  else { attendance.push({ emp, date, status, inTime, outTime, hours }); showToast(`✅ Attendance marked for ${emp}`); }
+  document.getElementById('atInTime').value = '';
+  document.getElementById('atOutTime').value = '';
   save();
   loadAttendance();
 }
@@ -3621,15 +3669,18 @@ function loadAttendance() {
   const statsEl = document.getElementById('attStatsGrid');
   if (statsEl) {
     const count = s => todays.filter(a => a.status === s).length;
+    const withHours = todays.filter(a => a.hours != null);
+    const avgHours = withHours.length ? Math.round((withHours.reduce((s,a)=>s+a.hours,0)/withHours.length)*100)/100 : 0;
     statsEl.innerHTML = `
       <div class="stat-card" style="--c:var(--accent)"><div class="stat-icon">🧑‍💼</div><div class="stat-value">${employees.length}</div><div class="stat-label">Total Employees</div></div>
       <div class="stat-card" style="--c:var(--success)"><div class="stat-icon">✅</div><div class="stat-value">${count('Present')}</div><div class="stat-label">Present Today</div></div>
       <div class="stat-card" style="--c:var(--danger)"><div class="stat-icon">❌</div><div class="stat-value">${count('Absent')}</div><div class="stat-label">Absent Today</div></div>
-      <div class="stat-card" style="--c:var(--accent3)"><div class="stat-icon">🌴</div><div class="stat-value">${count('On Leave')}</div><div class="stat-label">On Leave Today</div></div>`;
+      <div class="stat-card" style="--c:var(--accent3)"><div class="stat-icon">🌴</div><div class="stat-value">${count('On Leave')}</div><div class="stat-label">On Leave Today</div></div>
+      <div class="stat-card" style="--c:var(--accent2)"><div class="stat-icon">⏱️</div><div class="stat-value">${avgHours}h</div><div class="stat-label">Avg Work Hours Today</div></div>`;
   }
   const tb = document.querySelector('#attable tbody');
   if (!attendance.length) {
-    tb.innerHTML = `<tr><td colspan="4"><div class="empty-state"><div class="e-icon">🗓️</div><p>No attendance marked yet</p></div></td></tr>`;
+    tb.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="e-icon">🗓️</div><p>No attendance marked yet</p></div></td></tr>`;
     return;
   }
   const indexed = attendance.map((a,i) => ({ ...a, _idx:i }));
@@ -3637,6 +3688,9 @@ function loadAttendance() {
     <td><strong>${esc(a.emp)}</strong></td>
     <td>${esc(a.date)}</td>
     <td>${genericStatusBadge(a.status)}</td>
+    <td>${esc(a.inTime||'—')}</td>
+    <td>${esc(a.outTime||'—')}</td>
+    <td>${a.hours!=null ? a.hours+'h' : '—'}</td>
     <td><div class="action-cell"><button class="btn btn-danger btn-sm" onclick="delAttendance(${a._idx})">Delete</button></div></td>
   </tr>`).join('');
 }
