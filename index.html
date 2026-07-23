@@ -715,6 +715,8 @@ tbody tr:last-child td { border-bottom: none; }
             <button class="btn btn-outline btn-sm" onclick="exportTableCSV('prtable','payroll.csv')">⬇ CSV</button>
             <button class="btn btn-outline btn-sm" onclick="printSelectedPayslips()">🖨 Print Selected</button>
             <button class="btn btn-accent btn-sm" onclick="printAllPayslips()">🖨 Print All</button>
+            <button class="btn btn-outline btn-sm" onclick="markSelectedPaid()">✅ Mark Selected Paid</button>
+            <button class="btn btn-success btn-sm" onclick="markAllPaid()">✅ Mark All Paid</button>
           </div>
           <div class="table-wrap">
             <table id="prtable">
@@ -3897,6 +3899,32 @@ function togglePayrollCheckAll(cb) {
 
 function getCheckedPayrollIndices() {
   return [...document.querySelectorAll('.pr-check:checked')].map(cb => Number(cb.dataset.idx));
+}
+
+function markPayrollPaid(idxs) {
+  const records = idxs.map(i => payroll[i]).filter(p => p && p.status !== 'Paid');
+  if (!records.length) { showToast('⚠️ No unpaid records to mark', 'error'); return; }
+  records.forEach(p => {
+    logStatusChange('Payroll', `${p.emp} — ${p.month}`, p.emp, p.status, 'Paid');
+    p.status = 'Paid';
+  });
+  save();
+  loadPayroll();
+  showToast(`✅ Marked ${records.length} record${records.length>1?'s':''} as Paid`);
+}
+
+function markSelectedPaid() {
+  const idxs = getCheckedPayrollIndices();
+  if (!idxs.length) { showToast('⚠️ Select at least one payroll record', 'error'); return; }
+  markPayrollPaid(idxs);
+}
+
+function markAllPaid() {
+  if (!payroll.length) { showToast('⚠️ No payroll records yet', 'error'); return; }
+  const visibleRows = [...document.querySelectorAll('#prtable tbody tr')].filter(r => r.style.display !== 'none' && r.dataset.idx !== undefined);
+  const idxs = visibleRows.map(r => Number(r.dataset.idx)).filter(n => !isNaN(n));
+  if (!idxs.length) { showToast('⚠️ No payroll records to mark', 'error'); return; }
+  markPayrollPaid(idxs);
 }
 
 // ===== HRMS: PAYSLIP (single + bulk print) =====
