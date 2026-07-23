@@ -713,10 +713,12 @@ tbody tr:last-child td { border-bottom: none; }
           <div class="search-bar">
             <input id="prSearch" placeholder="🔍 Search payroll..." oninput="filterTable('prtable','prSearch')">
             <button class="btn btn-outline btn-sm" onclick="exportTableCSV('prtable','payroll.csv')">⬇ CSV</button>
+            <button class="btn btn-outline btn-sm" onclick="printSelectedPayslips()">🖨 Print Selected</button>
+            <button class="btn btn-accent btn-sm" onclick="printAllPayslips()">🖨 Print All</button>
           </div>
           <div class="table-wrap">
             <table id="prtable">
-              <thead><tr><th>Employee</th><th>Month</th><th>Basic</th><th>Deductions</th><th>Net Pay</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+              <thead><tr><th style="width:32px"><input type="checkbox" id="prCheckAll" onclick="togglePayrollCheckAll(this)"></th><th>Employee</th><th>Month</th><th>Basic</th><th>Deductions</th><th>Net Pay</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
               <tbody></tbody>
             </table>
           </div>
@@ -987,6 +989,22 @@ tbody tr:last-child td { border-bottom: none; }
     </div>
     <div style="max-height:74vh;overflow-y:auto;border:1px solid var(--border);border-top:none;border-radius:0 0 16px 16px">
       <div id="invoiceContent"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PAYSLIP MODAL -->
+<div class="modal-bg" id="payslipModal">
+  <div class="modal" style="width:760px;max-width:96vw;padding:0;background:transparent;border:none;box-shadow:none">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px 16px 0 0;padding:16px 24px;display:flex;justify-content:space-between;align-items:center">
+      <h3 style="margin:0">💰 Salary Slip Preview</h3>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-outline btn-sm" onclick="closeModal('payslipModal')">Close</button>
+        <button class="btn btn-accent btn-sm" onclick="printPayslipModal()">🖨 Print / PDF</button>
+      </div>
+    </div>
+    <div style="max-height:74vh;overflow-y:auto;border:1px solid var(--border);border-top:none;border-radius:0 0 16px 16px">
+      <div id="payslipContent"></div>
     </div>
   </div>
 </div>
@@ -3849,12 +3867,15 @@ function delPayroll(i) {
 
 function loadPayroll() {
   const tb = document.querySelector('#prtable tbody');
+  const chkAll = document.getElementById('prCheckAll');
+  if (chkAll) chkAll.checked = false;
   if (!payroll.length) {
-    tb.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="e-icon">💰</div><p>No payroll records yet</p></div></td></tr>`;
+    tb.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="e-icon">💰</div><p>No payroll records yet</p></div></td></tr>`;
     return;
   }
   const indexed = payroll.map((p,i) => ({ ...p, _idx:i }));
-  tb.innerHTML = [...indexed].reverse().map(p => `<tr>
+  tb.innerHTML = [...indexed].reverse().map(p => `<tr data-idx="${p._idx}">
+    <td><input type="checkbox" class="pr-check" data-idx="${p._idx}"></td>
     <td><strong>${esc(p.emp)}</strong></td>
     <td>${esc(p.month)}</td>
     <td>₹${(p.basic||0).toLocaleString('en-IN')}</td>
@@ -3863,10 +3884,175 @@ function loadPayroll() {
     <td>${statusBadge(p.status||'Unpaid')}</td>
     <td>${esc(p.date)}</td>
     <td><div class="action-cell">
+      <button class="btn btn-outline btn-sm" onclick="showPayslip(${p._idx})">🖨 Print</button>
       <button class="btn ${p.status==='Paid'?'btn-outline':'btn-success'} btn-sm" onclick="togglePayrollStatus(${p._idx})">${p.status==='Paid'?'Mark Unpaid':'Mark Paid'}</button>
       <button class="btn btn-danger btn-sm" onclick="delPayroll(${p._idx})">Delete</button>
     </div></td>
   </tr>`).join('');
+}
+
+function togglePayrollCheckAll(cb) {
+  document.querySelectorAll('.pr-check').forEach(el => { el.checked = cb.checked; });
+}
+
+function getCheckedPayrollIndices() {
+  return [...document.querySelectorAll('.pr-check:checked')].map(cb => Number(cb.dataset.idx));
+}
+
+// ===== HRMS: PAYSLIP (single + bulk print) =====
+let currentPayslip = null;
+
+function payslipHTML(p) {
+  const c = companyProfile;
+  const e = (employees||[]).find(x => x.name === p.emp) || {};
+  let monthLabel = p.month || '—';
+  if (p.month) {
+    const parts = String(p.month).split('-');
+    if (parts.length === 2) {
+      const d = new Date(Number(parts[0]), Number(parts[1]) - 1, 1);
+      if (!isNaN(d)) monthLabel = d.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+    }
+  }
+  const basic = Number(p.basic) || 0;
+  const deductions = Number(p.deductions) || 0;
+  const net = Number(p.net) || 0;
+  return `
+  <div style="background:#ffffff;color:#1e293b;padding:32px;font-family:Arial,Helvetica,sans-serif;font-size:13px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #0f172a;padding-bottom:14px;margin-bottom:14px">
+      <div style="display:flex;gap:14px;align-items:center">
+        <img src="${c.logo || COMPANY_LOGO}" style="height:52px" alt="logo">
+        <div>
+          <div style="font-size:16px;font-weight:700;color:#0f172a">${esc(c.name)}</div>
+          <div style="font-size:11px;color:#475569">${esc(c.tagline1)}</div>
+          <div style="font-size:11px;color:#475569">${esc(c.tagline2)}</div>
+        </div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:18px;font-weight:700;color:#0f172a">SALARY SLIP</div>
+        <div style="font-size:11px;color:#64748b">For the month of ${esc(monthLabel)}</div>
+      </div>
+    </div>
+
+    <div style="font-size:11px;color:#475569;margin-bottom:16px;line-height:1.7">
+      ${esc(c.addr)}${c.addr?'<br>':''}
+      ${c.gstin?`GSTIN/UIN: <strong>${esc(c.gstin)}</strong> &nbsp; | &nbsp; State: <strong>${esc(c.state)}</strong><br>`:''}
+      ${c.phone?`Contact: ${esc(c.phone)} `:''}${c.email?` &nbsp;|&nbsp; Email: ${esc(c.email)}`:''}
+    </div>
+
+    <table style="width:100%;border-collapse:collapse;margin-bottom:16px;font-size:12px">
+      <tr>
+        <td style="width:55%;border:1px solid #cbd5e1;padding:10px;vertical-align:top">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:#64748b;font-weight:700;margin-bottom:6px">Employee Details</div>
+          <div style="font-weight:700;font-size:14px">${esc(p.emp)}</div>
+          ${e.designation ? `<div style="font-size:11px;color:#475569;margin-top:4px">${esc(e.designation)}${e.dept?' · '+esc(e.dept):''}</div>` : ''}
+          ${e.email ? `<div style="font-size:11px;color:#475569;margin-top:2px">${esc(e.email)}</div>` : ''}
+          ${e.phone ? `<div style="font-size:11px;color:#475569;margin-top:2px">Ph: ${esc(e.phone)}</div>` : ''}
+          ${e.joinDate ? `<div style="font-size:11px;color:#475569;margin-top:2px">Date of Joining: ${esc(e.joinDate)}</div>` : ''}
+        </td>
+        <td style="width:45%;border:1px solid #cbd5e1;padding:10px;vertical-align:top">
+          <table style="width:100%;font-size:12px;border-collapse:collapse">
+            <tr><td style="color:#64748b;padding:2px 0">Pay Period</td><td style="text-align:right;font-weight:700">${esc(monthLabel)}</td></tr>
+            <tr><td style="color:#64748b;padding:2px 0">Generated On</td><td style="text-align:right">${esc(p.date||'—')}</td></tr>
+            <tr><td style="color:#64748b;padding:2px 0">Payment Mode</td><td style="text-align:right">Bank Transfer</td></tr>
+            <tr><td style="color:#64748b;padding:2px 0">Payment Status</td><td style="text-align:right;font-weight:700;color:${p.status==='Paid'?'#10b981':'#f43f5e'}">${esc(p.status||'Unpaid')}</td></tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+
+    <table style="width:100%;border-collapse:collapse;margin-bottom:16px;font-size:12px">
+      <thead>
+        <tr>
+          <th style="background:#0f172a;color:#fff;padding:8px;text-align:left;border:1px solid #0f172a">Earnings</th>
+          <th style="background:#0f172a;color:#fff;padding:8px;text-align:right;border:1px solid #0f172a">Amount (₹)</th>
+          <th style="background:#0f172a;color:#fff;padding:8px;text-align:left;border:1px solid #0f172a">Deductions</th>
+          <th style="background:#0f172a;color:#fff;padding:8px;text-align:right;border:1px solid #0f172a">Amount (₹)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="padding:8px;border:1px solid #cbd5e1">Basic Salary</td>
+          <td style="padding:8px;border:1px solid #cbd5e1;text-align:right">${basic.toLocaleString('en-IN',{minimumFractionDigits:2})}</td>
+          <td style="padding:8px;border:1px solid #cbd5e1">${deductions ? 'Deductions' : '—'}</td>
+          <td style="padding:8px;border:1px solid #cbd5e1;text-align:right">${deductions ? deductions.toLocaleString('en-IN',{minimumFractionDigits:2}) : '—'}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px;border:1px solid #cbd5e1;font-weight:700">Gross Earnings</td>
+          <td style="padding:8px;border:1px solid #cbd5e1;text-align:right;font-weight:700">${basic.toLocaleString('en-IN',{minimumFractionDigits:2})}</td>
+          <td style="padding:8px;border:1px solid #cbd5e1;font-weight:700">Total Deductions</td>
+          <td style="padding:8px;border:1px solid #cbd5e1;text-align:right;font-weight:700">${deductions.toLocaleString('en-IN',{minimumFractionDigits:2})}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <table style="width:100%;border-collapse:collapse;margin-bottom:20px">
+      <tr>
+        <td style="background:#f1f5f9;border:1px solid #cbd5e1;padding:12px;font-size:14px;font-weight:700">Net Pay</td>
+        <td style="background:#f1f5f9;border:1px solid #cbd5e1;padding:12px;text-align:right;font-size:16px;font-weight:700;color:#0f172a">₹${net.toLocaleString('en-IN',{minimumFractionDigits:2})}</td>
+      </tr>
+    </table>
+    <div style="font-size:11px;color:#475569;margin-bottom:24px">
+      <strong>Amount in Words:</strong> ${numberToWords(net)}
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:40px">
+      <div style="font-size:10px;color:#94a3b8;max-width:60%">This is a system-generated salary slip and does not require a signature.</div>
+      <div style="text-align:center;font-size:12px">
+        <div style="margin-bottom:36px">for ${esc(c.name)}</div>
+        <div style="border-top:1px solid #1e293b;padding-top:4px">Authorised Signatory</div>
+      </div>
+    </div>
+    <div style="text-align:center;font-size:10px;color:#94a3b8;margin-top:20px">This is a Computer Generated Payslip — RECONS ERP Pro</div>
+  </div>`;
+}
+
+function showPayslip(i) {
+  const p = payroll[i];
+  if (!p) return;
+  currentPayslip = p;
+  document.getElementById('payslipContent').innerHTML = payslipHTML(p);
+  document.getElementById('payslipModal').classList.add('open');
+}
+
+function printPayslipModal() {
+  if (!currentPayslip) return;
+  const w = window.open('','_blank','width=850,height=1000');
+  w.document.write(`<html><head><title>Payslip - ${esc(currentPayslip.emp)} - ${esc(currentPayslip.month)}</title>
+    <style>@media print{body{margin:0}} body{margin:0;background:#fff}</style></head>
+    <body>${payslipHTML(currentPayslip)}
+    <script>window.onload=()=>window.print();<\/script></body></html>`);
+  w.document.close();
+}
+
+function printPayslipsBulk(idxs) {
+  const records = idxs.map(i => payroll[i]).filter(Boolean);
+  if (!records.length) { showToast('⚠️ No payroll records to print', 'error'); return; }
+  const w = window.open('','_blank','width=850,height=1000');
+  const pages = records.map(p => `<div class="payslip-page">${payslipHTML(p)}</div>`).join('');
+  w.document.write(`<html><head><title>Salary Slips</title>
+    <style>
+      body{margin:0;background:#fff}
+      .payslip-page{page-break-after:always}
+      .payslip-page:last-child{page-break-after:auto}
+      @media print{body{margin:0}}
+    </style></head>
+    <body>${pages}
+    <script>window.onload=()=>window.print();<\/script></body></html>`);
+  w.document.close();
+}
+
+function printSelectedPayslips() {
+  const idxs = getCheckedPayrollIndices();
+  if (!idxs.length) { showToast('⚠️ Select at least one payroll record', 'error'); return; }
+  printPayslipsBulk(idxs);
+}
+
+function printAllPayslips() {
+  if (!payroll.length) { showToast('⚠️ No payroll records to print', 'error'); return; }
+  const visibleRows = [...document.querySelectorAll('#prtable tbody tr')].filter(r => r.style.display !== 'none' && r.dataset.idx !== undefined);
+  const idxs = visibleRows.map(r => Number(r.dataset.idx)).filter(n => !isNaN(n));
+  if (!idxs.length) { showToast('⚠️ No payroll records to print', 'error'); return; }
+  printPayslipsBulk(idxs);
 }
 
 // ===== LOAD ALL =====
