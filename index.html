@@ -766,9 +766,23 @@ tbody tr:last-child td { border-bottom: none; }
             </select>
             <button class="btn btn-outline btn-sm" onclick="exportTableCSV('ldtable','leads.csv')">⬇ CSV</button>
           </div>
+          <div class="search-bar" style="margin-top:10px">
+            <select id="ldBulkStage" style="max-width:170px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px">
+              <option value="">Set Stage To...</option>
+              <option value="New">New</option>
+              <option value="Contacted">Contacted</option>
+              <option value="Qualified">Qualified</option>
+              <option value="Proposal">Proposal</option>
+              <option value="Won">Won</option>
+              <option value="Lost">Lost</option>
+            </select>
+            <button class="btn btn-outline btn-sm" onclick="bulkUpdateLeadStage()">✓ Apply to Selected</button>
+            <button class="btn btn-outline btn-sm" onclick="exportSelectedLeadsCSV()">⬇ Export Selected</button>
+            <button class="btn btn-danger btn-sm" onclick="bulkDeleteLeads()">🗑️ Delete Selected</button>
+          </div>
           <div class="table-wrap">
             <table id="ldtable">
-              <thead><tr><th>Name</th><th>Company</th><th>Phone</th><th>Email</th><th>Source</th><th>Stage</th><th>Est. Value</th><th>Created</th><th>Actions</th></tr></thead>
+              <thead><tr><th style="width:32px"><input type="checkbox" id="ldCheckAll" onclick="toggleLeadCheckAll(this)"></th><th>Lead No</th><th>Name</th><th>Company</th><th>Phone</th><th>Email</th><th>Source</th><th>Stage</th><th>Est. Value</th><th>Created</th><th>Actions</th></tr></thead>
               <tbody></tbody>
             </table>
           </div>
@@ -1347,7 +1361,7 @@ function parseExpenses(raw) {
 
 let companyProfile, products, customers, vendors, sales, purchases, expenses, quotations, invoiceCounters, statusLog;
 let employees, attendance, leaves, payroll;
-let leads;
+let leads, leadCounter;
 let importPreviews = {};
 let importHistory  = [];
 
@@ -1370,6 +1384,16 @@ function loadCompanyData() {
   payroll         = JSON.parse(localStorage.getItem(ck("erp_payroll")))    || [];
   // ===== CRM data =====
   leads           = JSON.parse(localStorage.getItem(ck("erp_leads")))      || [];
+  leadCounter     = Number(localStorage.getItem(ck("erp_lead_counter")))   || 0;
+  // FIX: auto-generate Lead No for leads created before this feature existed (backward compatibility)
+  let leadsMigrated = false;
+  leads.forEach(l => {
+    if (!l.leadNo) { leadCounter++; l.leadNo = `LD-${new Date().getFullYear()}-${String(leadCounter).padStart(4,'0')}`; leadsMigrated = true; }
+  });
+  if (leadsMigrated) {
+    localStorage.setItem(ck("erp_leads"), JSON.stringify(leads));
+    localStorage.setItem(ck("erp_lead_counter"), String(leadCounter));
+  }
   importPreviews  = {};
   importHistory   = [];
 }
@@ -1394,6 +1418,14 @@ function nextInvoiceNo(type) {
   const prefix = type === 'sale' ? 'SAL' : type === 'quote' ? 'QUO' : 'PUR';
   const yr = new Date().getFullYear();
   return `${prefix}-${yr}-${String(invoiceCounters[key]).padStart(4,'0')}`;
+}
+
+// Auto-generated, unique Lead No for every new lead — e.g. LD-2026-0001
+function nextLeadNo() {
+  leadCounter = (leadCounter || 0) + 1;
+  localStorage.setItem(ck("erp_lead_counter"), String(leadCounter));
+  const yr = new Date().getFullYear();
+  return `LD-${yr}-${String(leadCounter).padStart(4,'0')}`;
 }
 
 function quoteStatusBadge(status) {
@@ -1590,6 +1622,7 @@ function save() {
   localStorage.setItem(ck("erp_leaves"),    JSON.stringify(leaves));
   localStorage.setItem(ck("erp_payroll"),   JSON.stringify(payroll));
   localStorage.setItem(ck("erp_leads"),     JSON.stringify(leads));
+  localStorage.setItem(ck("erp_lead_counter"), String(leadCounter));
   localStorage.setItem("erp_users",         JSON.stringify(users));
   loadAll();
 }
@@ -3583,7 +3616,7 @@ function addLead() {
   const notes   = document.getElementById('ldNotes').value.trim();
   if (!validateRequired([[name,'Lead Name']])) return;
   if (phone && !/^\d{10}$/.test(phone)) { showToast('⚠️ Phone must be 10 digits', 'error'); return; }
-  leads.push({ name, company, phone, email, source, stage, value, notes, created: new Date().toLocaleDateString() });
+  leads.push({ leadNo: nextLeadNo(), name, company, phone, email, source, stage, value, notes, created: new Date().toLocaleDateString() });
   ['ldName','ldCompany','ldPhone','ldEmail','ldValue','ldNotes'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('ldSource').value = 'Website';
   document.getElementById('ldStage').value = 'New';
@@ -3666,11 +3699,13 @@ function loadLeads() {
     <div class="stat-card" style="--c:var(--success)"><div class="stat-icon">🏆</div><div class="stat-value">${won}</div><div class="stat-label">Won</div></div>
     <div class="stat-card" style="--c:var(--accent2)"><div class="stat-icon">💰</div><div class="stat-value">₹${pipelineValue.toLocaleString('en-IN')}</div><div class="stat-label">Open Pipeline Value</div></div>`;
   if (!leads.length) {
-    tb.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="e-icon">🎯</div><p>No leads yet</p></div></td></tr>`;
+    tb.innerHTML = `<tr><td colspan="11"><div class="empty-state"><div class="e-icon">🎯</div><p>No leads yet</p></div></td></tr>`;
     return;
   }
   const indexed = leads.map((l,i) => ({ ...l, _idx:i }));
-  tb.innerHTML = [...indexed].reverse().map(l => `<tr>
+  tb.innerHTML = [...indexed].reverse().map(l => `<tr data-idx="${l._idx}">
+    <td><input type="checkbox" class="ld-check" data-idx="${l._idx}"></td>
+    <td><strong style="font-family:'Space Mono',monospace">${esc(l.leadNo||'—')}</strong></td>
     <td><strong>${esc(l.name)}</strong></td>
     <td>${esc(l.company||'—')}</td>
     <td>${esc(l.phone||'—')}</td>
@@ -3685,6 +3720,58 @@ function loadLeads() {
       <button class="btn btn-danger btn-sm" onclick="delLead(${l._idx})">Delete</button>
     </div></td>
   </tr>`).join('');
+}
+
+// ===== CRM: LEADS — bulk selection helpers =====
+function toggleLeadCheckAll(cb) {
+  document.querySelectorAll('.ld-check').forEach(el => { el.checked = cb.checked; });
+}
+function getCheckedLeadIndices() {
+  return [...document.querySelectorAll('.ld-check:checked')].map(cb => Number(cb.dataset.idx));
+}
+function bulkDeleteLeads() {
+  const idxs = getCheckedLeadIndices();
+  if (!idxs.length) { showToast('⚠️ Select at least one lead', 'error'); return; }
+  if (!confirm(`Delete ${idxs.length} selected lead(s)?`)) return;
+  idxs.forEach(i => { const l = leads[i]; if (l) logStatusChange('Lead', l.leadNo || l.name, l.company, l.stage, 'Deleted'); });
+  idxs.sort((a,b) => b - a).forEach(i => leads.splice(i, 1)); // delete highest index first so earlier indices stay valid
+  const chkAll = document.getElementById('ldCheckAll');
+  if (chkAll) chkAll.checked = false;
+  save();
+  loadLeads();
+  showToast(`🗑️ ${idxs.length} lead(s) deleted`, 'error');
+}
+function bulkUpdateLeadStage() {
+  const idxs = getCheckedLeadIndices();
+  const newStage = document.getElementById('ldBulkStage').value;
+  if (!idxs.length) { showToast('⚠️ Select at least one lead', 'error'); return; }
+  if (!newStage) { showToast('⚠️ Choose a stage to apply', 'error'); return; }
+  idxs.forEach(i => {
+    const l = leads[i];
+    if (!l) return;
+    if (l.stage !== newStage) logStatusChange('Lead', l.leadNo || l.name, l.company, l.stage, newStage);
+    l.stage = newStage;
+  });
+  const chkAll = document.getElementById('ldCheckAll');
+  if (chkAll) chkAll.checked = false;
+  save();
+  loadLeads();
+  showToast(`✅ ${idxs.length} lead(s) moved to "${newStage}"`);
+}
+function exportSelectedLeadsCSV() {
+  const idxs = getCheckedLeadIndices();
+  if (!idxs.length) { showToast('⚠️ Select at least one lead', 'error'); return; }
+  const rows = idxs.map(i => leads[i]).filter(Boolean);
+  const header = ['Lead No','Name','Company','Phone','Email','Source','Stage','Est. Value','Created'];
+  const csvRows = rows.map(l => [l.leadNo, l.name, l.company, l.phone, l.email, l.source, l.stage, l.value, l.created]
+    .map(v => `"${String(v ?? '').replace(/"/g,'""')}"`).join(','));
+  const csv = [header.join(','), ...csvRows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'leads-selected.csv'; a.click();
+  URL.revokeObjectURL(url);
+  showToast(`⬇ Exported ${rows.length} selected lead(s)`);
 }
 
 // ===== HRMS: EMPLOYEES =====
