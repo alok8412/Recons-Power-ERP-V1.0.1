@@ -77,12 +77,14 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 20px; }
 .card-title { font-size: 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 16px; }
-.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; margin-bottom: 24px; }
 .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; position: relative; overflow: hidden; transition: border-color 0.2s; }
 .stat-card:hover { border-color: var(--accent); }
 .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--c, var(--accent)); }
 .stat-icon { font-size: 22px; margin-bottom: 10px; }
-.stat-value { font-family: 'Space Mono', monospace; font-size: 26px; font-weight: 700; color: var(--text); }
+/* FIX: large currency figures (e.g. ₹93,30,099.52) were being clipped by the card's overflow:hidden.
+   font-size now scales down with clamp() and the value wraps instead of being cut off. */
+.stat-value { font-family: 'Space Mono', monospace; font-size: clamp(17px, 2.1vw, 26px); font-weight: 700; color: var(--text); white-space: normal; overflow-wrap: break-word; word-break: break-word; line-height: 1.2; }
 .stat-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
 .stat-change { font-size: 12px; margin-top: 8px; font-weight: 600; }
 .stat-change.up { color: var(--success); }
@@ -989,6 +991,7 @@ tbody tr:last-child td { border-bottom: none; }
       <h3 style="margin:0">🧾 Invoice Preview</h3>
       <div style="display:flex;gap:10px">
         <button class="btn btn-outline btn-sm" onclick="closeModal('invoiceModal')">Close</button>
+        <button class="btn btn-outline btn-sm" id="btnEmailInvoice" onclick="emailInvoiceModal()">📧 Send Email</button>
         <button class="btn btn-accent btn-sm" onclick="printInvoiceModal()">🖨 Print / PDF</button>
       </div>
     </div>
@@ -2574,6 +2577,9 @@ function showInvoice(record, type='sale') {
   currentInvoiceType = type;
   document.getElementById('invoiceContent').innerHTML = invoiceHTML(record, type);
   document.getElementById('invoiceModal').classList.add('open');
+  // Email sending is only offered for Sales Invoices & Quotations (not purchase bills from vendors)
+  const emailBtn = document.getElementById('btnEmailInvoice');
+  if (emailBtn) emailBtn.style.display = (type === 'sale' || type === 'quote') ? '' : 'none';
 }
 
 function printInvoiceModal() {
@@ -2584,6 +2590,66 @@ function printInvoiceModal() {
     <body>${invoiceHTML(currentInvoice, currentInvoiceType)}
     <script>window.onload=()=>window.print();<\/script></body></html>`);
   w.document.close();
+}
+
+// ===== EMAIL (Sales Invoices & Quotations) =====
+// No backend/SMTP is available in this app, so "Send Email" opens the user's own
+// default email client via a mailto: link, pre-filled with the customer's address,
+// a subject line, and a plain-text summary of the document. The user reviews and
+// hits Send themselves — nothing is sent silently from here.
+function emailInvoiceModal() {
+  if (!currentInvoice) return;
+  if (currentInvoiceType !== 'sale' && currentInvoiceType !== 'quote') {
+    showToast('⚠️ Email sending is only available for sales invoices and quotations', 'error');
+    return;
+  }
+  const record   = currentInvoice;
+  const isQuote  = currentInvoiceType === 'quote';
+  const custObj  = (customers || []).find(c => c.name === record.customer);
+  const toEmail  = (custObj && custObj.email) ? custObj.email.trim() : '';
+
+  if (!toEmail) {
+    showToast(`⚠️ No email on file for ${esc(record.customer || 'this customer')} — add one under Customers`, 'error');
+    return;
+  }
+
+  const docLabel = isQuote ? 'Quotation' : 'Invoice';
+  const docNo    = (isQuote ? record.quoteNo : record.invNo) || '—';
+  const c        = companyProfile;
+  const subject  = `${docLabel} ${docNo} from ${c.name || 'Us'}`;
+
+  const items = itemsOf(record, currentInvoiceType);
+  const itemLines = items.map((it, idx) => {
+    const nm   = it.name;
+    const rate = Number(it.price) || 0;
+    const amt  = Number(it.subtotal) || 0;
+    return `${idx + 1}. ${nm} — Qty ${it.qty} x ₹${rate.toLocaleString('en-IN', {minimumFractionDigits: 2})} = ₹${amt.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+  }).join('\n');
+
+  const bodyLines = [
+    `Dear ${record.customer || 'Customer'},`,
+    '',
+    isQuote
+      ? `Please find below the quotation ${docNo} dated ${record.date}, valid until ${record.validTill || '—'}.`
+      : `Please find below the invoice ${docNo} dated ${record.date}.`,
+    '',
+    itemLines,
+    '',
+    `Taxable Value: Rs. ${Number(record.subtotal).toLocaleString('en-IN', {minimumFractionDigits: 2})}`,
+    `GST: Rs. ${Number(record.gst).toLocaleString('en-IN', {minimumFractionDigits: 2})}`,
+    `Grand Total: Rs. ${Number(record.grand).toLocaleString('en-IN', {minimumFractionDigits: 2})}`,
+    '',
+    isQuote ? 'This quotation is an estimate and not a demand for payment.' : `Payment Status: ${record.status || '—'}`,
+    '',
+    'A printable copy is attached separately / available on request.',
+    '',
+    'Regards,',
+    c.name || ''
+  ];
+
+  const mailtoUrl = `mailto:${encodeURIComponent(toEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyLines.join('\n'))}`;
+  window.location.href = mailtoUrl;
+  showToast(`📧 Opening your email client to send ${docLabel} ${docNo} to ${toEmail}`, 'success');
 }
 
 // ===== PURCHASE INVOICES =====
