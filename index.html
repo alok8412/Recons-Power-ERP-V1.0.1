@@ -2488,7 +2488,7 @@ function invoiceHTML(record, type) {
   const party     = isQuote ? record.customer : isSale ? record.customer : record.vendor;
   const custObj   = (isSale || isQuote) ? (customers||[]).find(c => (c.name||'').trim().toLowerCase() === (record.customer||'').trim().toLowerCase()) : null;
   const vendObj   = isPurchase ? (vendors||[]).find(v => (v.name||'').trim().toLowerCase() === (record.vendor||'').trim().toLowerCase()) : null;
-  const hasShipTo = custObj && custObj.shippingAddr && custObj.shippingAddr.trim() && custObj.shippingAddr.trim() !== (custObj.billingAddr||'').trim();
+  const hasShipTo = custObj && custObj.shippingAddr && custObj.shippingAddr.trim();
   const items     = itemsOf(record, type);
   const itemRows  = items.map((it,idx) => {
     const nm   = isPurchase ? it.item : it.name;
