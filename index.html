@@ -780,8 +780,8 @@ tbody tr:last-child td { border-bottom: none; }
         <div class="card">
           <div class="card-title">Status Log</div>
           <div class="search-bar">
-            <input id="crmSearch" placeholder="🔍 Search by reference #, customer/vendor, or status..." oninput="filterTable('crmtable','crmSearch')">
-            <select id="crmTypeFilter" style="max-width:170px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px" onchange="filterByStatus('crmtable','crmTypeFilter')">
+            <input id="crmSearch" placeholder="🔍 Search by reference #, customer/vendor, or status..." oninput="applyCrmFilters()">
+            <select id="crmTypeFilter" style="max-width:170px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px" onchange="applyCrmFilters()">
               <option value="">All Types</option>
               <option value="Quotation">Quotation</option>
               <option value="Sales Invoice">Sales Invoice</option>
@@ -790,6 +790,9 @@ tbody tr:last-child td { border-bottom: none; }
               <option value="Leave Request">Leave Request</option>
               <option value="Payroll">Payroll</option>
               <option value="Lead">Lead</option>
+            </select>
+            <select id="crmStatusFilter" style="max-width:170px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px" onchange="applyCrmFilters()">
+              <option value="">All Statuses</option>
             </select>
             <button class="btn btn-outline btn-sm" onclick="exportTableCSV('crmtable','status_log.csv')">⬇ CSV</button>
           </div>
@@ -3454,12 +3457,21 @@ function renderStatusLog() {
     <div class="stat-card" style="--c:var(--accent3)"><div class="stat-icon">🧾</div><div class="stat-value">${counts['Quotation']}</div><div class="stat-label">Quotation Events</div></div>
     <div class="stat-card" style="--c:var(--success)"><div class="stat-icon">🛒</div><div class="stat-value">${counts['Sales Invoice']}</div><div class="stat-label">Sales Invoice Events</div></div>
     <div class="stat-card" style="--c:var(--accent2)"><div class="stat-icon">📥</div><div class="stat-value">${counts['Purchase Invoice']}</div><div class="stat-label">Purchase Invoice Events</div></div>`;
+
+  const statusSel = document.getElementById('crmStatusFilter');
+  if (statusSel) {
+    const prevVal = statusSel.value;
+    const uniqueStatuses = [...new Set(statusLog.map(l => l.newStatus).filter(Boolean))].sort();
+    statusSel.innerHTML = `<option value="">All Statuses</option>` + uniqueStatuses.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
+    if (uniqueStatuses.includes(prevVal)) statusSel.value = prevVal;
+  }
+
   if (!statusLog.length) {
     tb.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="e-icon">🕒</div><p>No status changes logged yet</p></div></td></tr>`;
     return;
   }
   const icons = { Quotation:'🧾', 'Sales Invoice':'🛒', 'Purchase Invoice':'📥', Employee:'🧑‍💼', 'Leave Request':'🌴', Payroll:'💰', Lead:'🎯' };
-  tb.innerHTML = statusLog.map(l => `<tr>
+  tb.innerHTML = statusLog.map(l => `<tr data-type="${esc(l.entity)}" data-status="${esc(l.newStatus||'')}">
     <td>${esc(l.time)}</td>
     <td><span class="badge badge-purple">${icons[l.entity]||'📌'} ${esc(l.entity)}</span></td>
     <td><strong>${esc(l.refNo||'—')}</strong></td>
@@ -3468,6 +3480,23 @@ function renderStatusLog() {
     <td>${genericStatusBadge(l.newStatus)}</td>
     <td>${esc(l.user||'System')}</td>
   </tr>`).join('');
+  applyCrmFilters();
+}
+
+function applyCrmFilters() {
+  const searchEl = document.getElementById('crmSearch');
+  const typeEl = document.getElementById('crmTypeFilter');
+  const statusEl = document.getElementById('crmStatusFilter');
+  const q = searchEl ? searchEl.value.toLowerCase() : '';
+  const type = typeEl ? typeEl.value : '';
+  const status = statusEl ? statusEl.value : '';
+  document.querySelectorAll('#crmtable tbody tr').forEach(row => {
+    if (!row.dataset.type && !row.dataset.status) { row.style.display = ''; return; } // empty-state row
+    const matchesSearch = !q || row.textContent.toLowerCase().includes(q);
+    const matchesType = !type || row.dataset.type === type;
+    const matchesStatus = !status || row.dataset.status === status;
+    row.style.display = (matchesSearch && matchesType && matchesStatus) ? '' : 'none';
+  });
 }
 
 // ===== CRM: LEADS =====
@@ -3779,7 +3808,6 @@ function applyLeave() {
   if (!validateRequired([[reason,'Reason']])) return;
   const days = Math.round((new Date(to) - new Date(from)) / 86400000) + 1;
   leaves.push({ emp, from, to, days, reason, status:'Pending', appliedDate: new Date().toLocaleString() });
-  logStatusChange('Leave Request', `${emp} (${from} → ${to})`, emp, null, 'Pending');
   document.getElementById('lvFrom').value = '';
   document.getElementById('lvTo').value = '';
   document.getElementById('lvReason').value = '';
@@ -3841,7 +3869,6 @@ function generatePayroll() {
   const basic = Number(e.salary) || 0;
   const net   = Math.max(0, +(basic - deductions).toFixed(2));
   payroll.push({ emp, month, basic, deductions, net, status:'Unpaid', date: new Date().toLocaleString() });
-  logStatusChange('Payroll', `${emp} — ${month}`, emp, null, 'Unpaid');
   document.getElementById('prDeductions').value = '';
   save();
   loadPayroll();
