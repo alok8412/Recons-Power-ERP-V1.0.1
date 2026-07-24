@@ -2487,7 +2487,7 @@ function invoiceHTML(record, type) {
   const partyLbl  = isQuote ? 'Quotation For (Customer)' : isSale ? 'Bill To (Customer)' : 'Vendor (Bill From)';
   const party     = isQuote ? record.customer : isSale ? record.customer : record.vendor;
   const custObj   = (isSale || isQuote) ? (customers||[]).find(c => c.name === record.customer) : null;
-  const vendObj   = isPurchase ? (vendors||[]).find(v => v.name === record.vendor) : null;
+  const vendObj   = isPurchase ? (vendors||[]).find(v => (v.name||'').trim().toLowerCase() === (record.vendor||'').trim().toLowerCase()) : null;
   const hasShipTo = custObj && custObj.shippingAddr && custObj.shippingAddr.trim() && custObj.shippingAddr.trim() !== (custObj.billingAddr||'').trim();
   const items     = itemsOf(record, type);
   const itemRows  = items.map((it,idx) => {
@@ -2551,7 +2551,7 @@ function invoiceHTML(record, type) {
             ${isQuote
               ? `<tr><td style="color:#64748b;padding:2px 0">Valid Until</td><td style="text-align:right;font-weight:700">${esc(record.validTill||'—')}</td></tr>`
               : `<tr><td style="color:#64748b;padding:2px 0">Payment Status</td><td style="text-align:right;font-weight:700;color:${record.status==='Paid'?'#10b981':'#f43f5e'}">${esc(record.status||'—')}</td></tr>`}
-            ${isPurchase && vendObj && vendObj.warehouse ? `<tr><td style="color:#64748b;padding:2px 0">Dispatch Warehouse</td><td style="text-align:right;font-weight:700">${esc(vendObj.warehouse)}</td></tr>` : ''}
+            ${isPurchase ? `<tr><td style="color:#64748b;padding:2px 0">Dispatch Warehouse</td><td style="text-align:right;font-weight:700">${esc((vendObj && vendObj.warehouse) || '—')}</td></tr>` : ''}
           </table>
         </td>
       </tr>
