@@ -2129,7 +2129,6 @@ function makeSale() {
   const invNo    = nextInvoiceNo('sale');
   const sale = { invNo, items, name: items[0].name, customer: customer||'Walk-in', qty, subtotal, gst, grand, status, date };
   sales.push(sale);
-  logStatusChange('Sales Invoice', invNo, sale.customer, null, status);
   saleCart = [];
   renderSaleCart();
   save();
@@ -2284,7 +2283,6 @@ function makeQuotation() {
   const quoteNo  = nextInvoiceNo('quote');
   const quote = { quoteNo, items, name: items[0].name, customer: customer||'Walk-in', qty, subtotal, gst, grand, status:'Draft', validTill, date };
   quotations.push(quote);
-  logStatusChange('Quotation', quoteNo, quote.customer, null, 'Draft');
   quoteCart = [];
   renderQuoteCart();
   save();
@@ -2407,7 +2405,6 @@ function confirmConvertQuote() {
   const invNo    = nextInvoiceNo('sale');
   const sale = { invNo, items: saleItems, name: saleItems[0].name, customer: q.customer||'Walk-in', qty: itemsQty(saleItems), subtotal, gst, grand, status:'Unpaid', date: new Date().toLocaleString() };
   sales.push(sale);
-  logStatusChange('Sales Invoice', invNo, sale.customer, null, 'Unpaid');
 
   logStatusChange('Quotation', q.quoteNo, q.customer, q.status, 'Accepted');
   quotations[i] = { ...q, status: 'Accepted', convertedInvNo: invNo };
@@ -2668,7 +2665,6 @@ function makePurchase() {
   const invNo    = nextInvoiceNo('purchase');
   const purchase = { invNo, vendor, items, item: items[0].item, rate: items[0].rate, qty, subtotal, gst, grand, status, date };
   purchases.push(purchase);
-  logStatusChange('Purchase Invoice', invNo, vendor, null, status);
 
   purchaseCart = [];
   renderPurchaseCart();
@@ -3383,7 +3379,6 @@ function confirmImport(type) {
       if (employees.find(e=>e.name.toLowerCase()===r.name.toLowerCase())) return;
       const status = r.status || 'Active';
       employees.push({name:r.name,designation:r.designation,dept:r.department||'Other',phone:r.phone||'',email:r.email||'',salary:Number(r.salary),joinDate:r.join_date||new Date().toLocaleDateString(),status});
-      logStatusChange('Employee', r.name, r.department||'Other', null, status);
       imported++;
     });
   }
@@ -3409,7 +3404,6 @@ function confirmImport(type) {
       const days = isNaN(from)||isNaN(to) ? 1 : Math.max(1, Math.round((to-from)/86400000)+1);
       const status = r.status || 'Pending';
       leaves.push({emp:emp.name,from:r.from,to:r.to,days,reason:r.reason||'',status,appliedDate:new Date().toLocaleString()});
-      logStatusChange('Leave Request', `${emp.name} (${r.from} → ${r.to})`, emp.name, null, status);
       imported++;
     });
   }
@@ -3423,7 +3417,6 @@ function confirmImport(type) {
       const basic = Number(emp.salary)||0;
       const net = Math.max(0, +(basic - deductions).toFixed(2));
       payroll.push({emp:emp.name,month:r.month,basic,deductions,net,status:'Unpaid',date:new Date().toLocaleString()});
-      logStatusChange('Payroll', `${emp.name} — ${r.month}`, emp.name, null, 'Unpaid');
       imported++;
     });
   }
@@ -3512,7 +3505,6 @@ function addLead() {
   if (!validateRequired([[name,'Lead Name']])) return;
   if (phone && !/^\d{10}$/.test(phone)) { showToast('⚠️ Phone must be 10 digits', 'error'); return; }
   leads.push({ name, company, phone, email, source, stage, value, notes, created: new Date().toLocaleDateString() });
-  logStatusChange('Lead', name, company, null, stage);
   ['ldName','ldCompany','ldPhone','ldEmail','ldValue','ldNotes'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('ldSource').value = 'Website';
   document.getElementById('ldStage').value = 'New';
@@ -3642,7 +3634,6 @@ function addEmployee() {
   if (!salary || salary <= 0) { showToast('⚠️ Enter a valid monthly salary', 'error'); return; }
   if (employees.find(e => e.name.toLowerCase() === name.toLowerCase())) { showToast('⚠️ An employee with this name already exists', 'error'); return; }
   employees.push({ name, designation, dept, phone, email, salary, joinDate: joinDate || new Date().toLocaleDateString(), status });
-  logStatusChange('Employee', name, dept, null, status);
   ['heName','heDesignation','hePhone','heEmail','heSalary','heJoinDate'].forEach(id => document.getElementById(id).value = '');
   save();
   loadEmployees();
