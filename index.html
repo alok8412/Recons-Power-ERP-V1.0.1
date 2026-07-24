@@ -1008,6 +1008,7 @@ tbody tr:last-child td { border-bottom: none; }
       <h3 style="margin:0">💰 Salary Slip Preview</h3>
       <div style="display:flex;gap:10px">
         <button class="btn btn-outline btn-sm" onclick="closeModal('payslipModal')">Close</button>
+        <button class="btn btn-outline btn-sm" onclick="emailPayslipModal()">📧 Send Email</button>
         <button class="btn btn-accent btn-sm" onclick="printPayslipModal()">🖨 Print / PDF</button>
       </div>
     </div>
@@ -2577,9 +2578,9 @@ function showInvoice(record, type='sale') {
   currentInvoiceType = type;
   document.getElementById('invoiceContent').innerHTML = invoiceHTML(record, type);
   document.getElementById('invoiceModal').classList.add('open');
-  // Email sending is only offered for Sales Invoices & Quotations (not purchase bills from vendors)
+  // Email sending is available for Sales Invoices, Quotations, and Purchase Orders/Bills
   const emailBtn = document.getElementById('btnEmailInvoice');
-  if (emailBtn) emailBtn.style.display = (type === 'sale' || type === 'quote') ? '' : 'none';
+  if (emailBtn) emailBtn.style.display = '';
 }
 
 function printInvoiceModal() {
@@ -2592,46 +2593,58 @@ function printInvoiceModal() {
   w.document.close();
 }
 
-// ===== EMAIL (Sales Invoices & Quotations) =====
+// ===== EMAIL (Sales Invoices, Quotations & Purchase Orders) =====
 // No backend/SMTP is available in this app, so "Send Email" opens the user's own
-// default email client via a mailto: link, pre-filled with the customer's address,
-// a subject line, and a plain-text summary of the document. The user reviews and
-// hits Send themselves — nothing is sent silently from here.
+// default email client via a mailto: link, pre-filled with the customer's/vendor's
+// address, a subject line, and a plain-text summary of the document. The user
+// reviews and hits Send themselves — nothing is sent silently from here.
 function emailInvoiceModal() {
   if (!currentInvoice) return;
-  if (currentInvoiceType !== 'sale' && currentInvoiceType !== 'quote') {
-    showToast('⚠️ Email sending is only available for sales invoices and quotations', 'error');
-    return;
+  const record     = currentInvoice;
+  const isQuote    = currentInvoiceType === 'quote';
+  const isPurchase = currentInvoiceType === 'purchase';
+  const c          = companyProfile;
+
+  let toEmail, partyName, docLabel, docNo;
+
+  if (isPurchase) {
+    const vendObj = (vendors || []).find(v => v.name === record.vendor);
+    toEmail   = (vendObj && vendObj.email) ? vendObj.email.trim() : '';
+    partyName = record.vendor;
+    docLabel  = 'Purchase Order';
+    docNo     = record.invNo || record.poNo || '—';
+  } else {
+    const custObj = (customers || []).find(c2 => c2.name === record.customer);
+    toEmail   = (custObj && custObj.email) ? custObj.email.trim() : '';
+    partyName = record.customer;
+    docLabel  = isQuote ? 'Quotation' : 'Invoice';
+    docNo     = (isQuote ? record.quoteNo : record.invNo) || '—';
   }
-  const record   = currentInvoice;
-  const isQuote  = currentInvoiceType === 'quote';
-  const custObj  = (customers || []).find(c => c.name === record.customer);
-  const toEmail  = (custObj && custObj.email) ? custObj.email.trim() : '';
 
   if (!toEmail) {
-    showToast(`⚠️ No email on file for ${esc(record.customer || 'this customer')} — add one under Customers`, 'error');
+    const who = isPurchase ? 'Vendors' : 'Customers';
+    showToast(`⚠️ No email on file for ${esc(partyName || 'this party')} — add one under ${who}`, 'error');
     return;
   }
 
-  const docLabel = isQuote ? 'Quotation' : 'Invoice';
-  const docNo    = (isQuote ? record.quoteNo : record.invNo) || '—';
-  const c        = companyProfile;
-  const subject  = `${docLabel} ${docNo} from ${c.name || 'Us'}`;
+  const subject = `${docLabel} ${docNo} from ${c.name || 'Us'}`;
 
   const items = itemsOf(record, currentInvoiceType);
   const itemLines = items.map((it, idx) => {
-    const nm   = it.name;
-    const rate = Number(it.price) || 0;
+    const nm   = isPurchase ? it.item : it.name;
+    const rate = isPurchase ? (Number(it.rate) || 0) : (Number(it.price) || 0);
     const amt  = Number(it.subtotal) || 0;
     return `${idx + 1}. ${nm} — Qty ${it.qty} x ₹${rate.toLocaleString('en-IN', {minimumFractionDigits: 2})} = ₹${amt.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
   }).join('\n');
 
   const bodyLines = [
-    `Dear ${record.customer || 'Customer'},`,
+    `Dear ${partyName || (isPurchase ? 'Vendor' : 'Customer')},`,
     '',
     isQuote
       ? `Please find below the quotation ${docNo} dated ${record.date}, valid until ${record.validTill || '—'}.`
-      : `Please find below the invoice ${docNo} dated ${record.date}.`,
+      : isPurchase
+        ? `Please find below the purchase order/bill ${docNo} dated ${record.date}.`
+        : `Please find below the invoice ${docNo} dated ${record.date}.`,
     '',
     itemLines,
     '',
@@ -4124,6 +4137,55 @@ function showPayslip(i) {
   currentPayslip = p;
   document.getElementById('payslipContent').innerHTML = payslipHTML(p);
   document.getElementById('payslipModal').classList.add('open');
+}
+
+// No backend/SMTP is available in this app, so "Send Email" opens the user's own
+// default email client via a mailto: link, pre-filled with the employee's address,
+// a subject line, and a plain-text salary summary. Nothing is sent silently.
+function emailPayslipModal() {
+  if (!currentPayslip) return;
+  const p = currentPayslip;
+  const e = (employees || []).find(x => x.name === p.emp) || {};
+  const toEmail = (e.email || '').trim();
+
+  if (!toEmail) {
+    showToast(`⚠️ No email on file for ${esc(p.emp || 'this employee')} — add one under Employees`, 'error');
+    return;
+  }
+
+  let monthLabel = p.month || '—';
+  if (p.month) {
+    const parts = String(p.month).split('-');
+    if (parts.length === 2) {
+      const d = new Date(Number(parts[0]), Number(parts[1]) - 1, 1);
+      if (!isNaN(d)) monthLabel = d.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+    }
+  }
+
+  const c = companyProfile;
+  const basic = Number(p.basic) || 0;
+  const deductions = Number(p.deductions) || 0;
+  const net = Number(p.net) || 0;
+  const subject = `Salary Slip — ${monthLabel} — ${c.name || 'Us'}`;
+
+  const bodyLines = [
+    `Dear ${p.emp || 'Employee'},`,
+    '',
+    `Please find below your salary slip for ${monthLabel}.`,
+    '',
+    `Gross Earnings: Rs. ${basic.toLocaleString('en-IN', {minimumFractionDigits: 2})}`,
+    `Total Deductions: Rs. ${deductions.toLocaleString('en-IN', {minimumFractionDigits: 2})}`,
+    `Net Pay: Rs. ${net.toLocaleString('en-IN', {minimumFractionDigits: 2})}`,
+    '',
+    'A printable copy is attached separately / available on request.',
+    '',
+    'Regards,',
+    c.name || ''
+  ];
+
+  const mailtoUrl = `mailto:${encodeURIComponent(toEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyLines.join('\n'))}`;
+  window.location.href = mailtoUrl;
+  showToast(`📧 Opening your email client to send the ${monthLabel} payslip to ${toEmail}`, 'success');
 }
 
 function printPayslipModal() {
