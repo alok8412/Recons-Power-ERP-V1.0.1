@@ -2486,7 +2486,7 @@ function invoiceHTML(record, type) {
   const isPurchase= type === 'purchase';
   const partyLbl  = isQuote ? 'Quotation For (Customer)' : isSale ? 'Bill To (Customer)' : 'Vendor (Bill From)';
   const party     = isQuote ? record.customer : isSale ? record.customer : record.vendor;
-  const custObj   = (isSale || isQuote) ? (customers||[]).find(c => c.name === record.customer) : null;
+  const custObj   = (isSale || isQuote) ? (customers||[]).find(c => (c.name||'').trim().toLowerCase() === (record.customer||'').trim().toLowerCase()) : null;
   const vendObj   = isPurchase ? (vendors||[]).find(v => (v.name||'').trim().toLowerCase() === (record.vendor||'').trim().toLowerCase()) : null;
   const hasShipTo = custObj && custObj.shippingAddr && custObj.shippingAddr.trim() && custObj.shippingAddr.trim() !== (custObj.billingAddr||'').trim();
   const items     = itemsOf(record, type);
@@ -2654,7 +2654,7 @@ function emailInvoiceModal() {
     docLabel  = 'Purchase Order';
     docNo     = record.invNo || record.poNo || '—';
   } else {
-    const custObj = (customers || []).find(c2 => c2.name === record.customer);
+    const custObj = (customers || []).find(c2 => (c2.name||'').trim().toLowerCase() === (record.customer||'').trim().toLowerCase());
     toEmail   = (custObj && custObj.email) ? custObj.email.trim() : '';
     partyName = record.customer;
     docLabel  = isQuote ? 'Quotation' : 'Invoice';
