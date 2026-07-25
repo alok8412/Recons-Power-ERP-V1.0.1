@@ -752,6 +752,23 @@ tbody tr:last-child td { border-bottom: none; }
           </div>
         </div>
         <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleLeadBulkImport()">
+            <div class="card-title" style="margin-bottom:0">📂 Bulk Import Leads (CSV)</div>
+            <span id="ldBulkToggleIcon" style="color:var(--muted);font-size:13px">▾ Show</span>
+          </div>
+          <div id="ldBulkImportBody" style="display:none;margin-top:16px">
+            <div class="two-col">
+              <div class="card" style="margin-bottom:0"><div class="card-title">1 · Download Template</div><p style="font-size:13px;color:var(--muted);margin-bottom:14px">Required columns: <code style="background:var(--surface2);padding:2px 6px;border-radius:4px;font-size:12px">name, company, phone, email, source, stage, value, notes</code></p><button class="btn btn-outline" onclick="downloadTemplate('leads')">⬇ Leads Template</button></div>
+              <div class="card" style="margin-bottom:0"><div class="card-title">2 · Upload CSV</div><div class="drop-zone" id="dz_leads" onclick="document.getElementById('csv_leads').click()" ondragover="dzOver(event,'dz_leads')" ondragleave="dzLeave('dz_leads')" ondrop="dzDrop(event,'leads')"><div class="dz-icon">📁</div><div class="dz-text">Click or drag &amp; drop CSV here</div><div class="dz-hint">.csv files only</div></div><input type="file" id="csv_leads" accept=".csv" style="display:none" onchange="handleCSV(event,'leads')"></div>
+            </div>
+            <div class="card" id="preview_leads" style="display:none;margin-top:16px;margin-bottom:0">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="card-title" style="margin:0">3 · Preview &amp; Confirm</div><div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="clearImport('leads')">✕ Clear</button><button class="btn btn-outline btn-sm" id="errBtn_leads" style="display:none" onclick="downloadErrorRows('leads')">⬇ Error Rows</button><button class="btn btn-success" onclick="confirmImport('leads')">✅ Import All</button></div></div>
+              <div id="preview_status_leads" style="margin-bottom:10px;font-size:13px"></div>
+              <div class="table-wrap"><table id="preview_table_leads"></table></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
           <div class="card-title">Leads Pipeline</div>
           <div class="search-bar">
             <input id="ldSearch" placeholder="🔍 Search leads by name, company, phone or email..." oninput="filterTable('ldtable','ldSearch')">
@@ -873,7 +890,6 @@ tbody tr:last-child td { border-bottom: none; }
           <button class="tab" onclick="switchImportTab('imp_attendance',this)">🗓️ Attendance</button>
           <button class="tab" onclick="switchImportTab('imp_leave',this)">🌴 Leave</button>
           <button class="tab" onclick="switchImportTab('imp_payroll',this)">💰 Payroll</button>
-          <button class="tab" onclick="switchImportTab('imp_leads',this)">🎯 Leads</button>
         </div>
         <div id="imp_products">
           <div class="two-col">
@@ -961,17 +977,6 @@ tbody tr:last-child td { border-bottom: none; }
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="card-title" style="margin:0">3 · Preview &amp; Confirm</div><div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="clearImport('payroll')">✕ Clear</button><button class="btn btn-outline btn-sm" id="errBtn_payroll" style="display:none" onclick="downloadErrorRows('payroll')">⬇ Error Rows</button><button class="btn btn-success" onclick="confirmImport('payroll')">✅ Import All</button></div></div>
             <div id="preview_status_payroll" style="margin-bottom:10px;font-size:13px"></div>
             <div class="table-wrap"><table id="preview_table_payroll"></table></div>
-          </div>
-        </div>
-        <div id="imp_leads" style="display:none">
-          <div class="two-col">
-            <div class="card"><div class="card-title">1 · Download Template</div><p style="font-size:13px;color:var(--muted);margin-bottom:14px">Required columns: <code style="background:var(--surface2);padding:2px 6px;border-radius:4px;font-size:12px">name, company, phone, email, source, stage, value, notes</code></p><button class="btn btn-outline" onclick="downloadTemplate('leads')">⬇ Leads Template</button></div>
-            <div class="card"><div class="card-title">2 · Upload CSV</div><div class="drop-zone" id="dz_leads" onclick="document.getElementById('csv_leads').click()" ondragover="dzOver(event,'dz_leads')" ondragleave="dzLeave('dz_leads')" ondrop="dzDrop(event,'leads')"><div class="dz-icon">📁</div><div class="dz-text">Click or drag &amp; drop CSV here</div><div class="dz-hint">.csv files only</div></div><input type="file" id="csv_leads" accept=".csv" style="display:none" onchange="handleCSV(event,'leads')"></div>
-          </div>
-          <div class="card" id="preview_leads" style="display:none">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="card-title" style="margin:0">3 · Preview &amp; Confirm</div><div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="clearImport('leads')">✕ Clear</button><button class="btn btn-outline btn-sm" id="errBtn_leads" style="display:none" onclick="downloadErrorRows('leads')">⬇ Error Rows</button><button class="btn btn-success" onclick="confirmImport('leads')">✅ Import All</button></div></div>
-            <div id="preview_status_leads" style="margin-bottom:10px;font-size:13px"></div>
-            <div class="table-wrap"><table id="preview_table_leads"></table></div>
           </div>
         </div>
         <div class="card" style="margin-top:8px">
@@ -3284,7 +3289,7 @@ const TEMPLATES = {
 };
 
 function switchImportTab(tabId, btn) {
-  ['imp_products','imp_customers','imp_sales','imp_expenses','imp_employees','imp_attendance','imp_leave','imp_payroll','imp_leads'].forEach(t => {
+  ['imp_products','imp_customers','imp_sales','imp_expenses','imp_employees','imp_attendance','imp_leave','imp_payroll'].forEach(t => {
     const el = document.getElementById(t); if (el) el.style.display='none';
   });
   document.getElementById(tabId).style.display='block';
@@ -3576,6 +3581,7 @@ function confirmImport(type) {
   renderImportHistory();
   save();
   clearImport(type);
+  if (type==='leads') loadLeads();
   showToast(`✅ Imported ${imported} ${type} successfully!`);
 }
 
@@ -3645,6 +3651,14 @@ function applyCrmFilters() {
 }
 
 // ===== CRM: LEADS =====
+function toggleLeadBulkImport() {
+  const body = document.getElementById('ldBulkImportBody');
+  const icon = document.getElementById('ldBulkToggleIcon');
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  icon.textContent = open ? '▾ Show' : '▴ Hide';
+}
+
 function addLead() {
   const name    = document.getElementById('ldName').value.trim();
   const company = document.getElementById('ldCompany').value.trim();
